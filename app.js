@@ -1,0 +1,1327 @@
+const SUPABASE_URL = 'https://qsnlddtwclwhwiowoskr.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_xOpZAN1La7mlmnkFlZGDJA_W_iDhdXD';
+const HAS_SUPABASE_CONFIG =
+  SUPABASE_URL.startsWith('https://') &&
+  !SUPABASE_URL.includes('PUT_') &&
+  SUPABASE_ANON_KEY &&
+  !SUPABASE_ANON_KEY.includes('PUT_') &&
+  typeof window.supabase !== 'undefined';
+
+const supabaseClient = HAS_SUPABASE_CONFIG
+  ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+  : null;
+
+const COUNTRIES = ['Chile', 'Argentina', 'Colombia', 'México'];
+const COUNTRY_FLAGS = {
+  Chile: '🇨🇱',
+  Argentina: '🇦🇷',
+  Colombia: '🇨🇴',
+  México: '🇲🇽',
+};
+
+const BG_COLORS = [
+  '#1a3a6b', '#2d1b4e', '#1a4a2e', '#4a1a1a', '#1a3a4a', '#3a2d1b',
+  '#1a2d3a', '#2d3a1b', '#3a1a3a', '#1a4a3a', '#3a3a1b', '#1b3a1a',
+  '#3a1a2d', '#1a2a4a', '#2a3a1a', '#3a2a1b', '#1a1a4a', '#4a2a1a',
+  '#1a4a1a', '#2a1a4a', '#3a1b1a', '#1a3b2a', '#2a4a1a', '#1a2a3a',
+];
+
+const UI_PREFS_KEY = 'colegium_album_ui_v1';
+
+const TEAM_SEED = [
+  { id: 1, name: 'Ariel G.', role: 'CEO', country: 'Chile' },
+  { id: 2, name: 'Valentina R.', role: 'Producto', country: 'Chile' },
+  { id: 3, name: 'Diego M.', role: 'Desarrollo', country: 'Argentina' },
+  { id: 4, name: 'Camila F.', role: 'CS', country: 'Colombia' },
+  { id: 5, name: 'Matías L.', role: 'Desarrollo', country: 'Chile' },
+  { id: 6, name: 'Sofía P.', role: 'Diseño', country: 'México' },
+  { id: 7, name: 'Andrés C.', role: 'Ventas', country: 'Colombia' },
+  { id: 8, name: 'Isabella T.', role: 'CS', country: 'Argentina' },
+  { id: 9, name: 'Lucas H.', role: 'Desarrollo', country: 'Chile' },
+  { id: 10, name: 'Martina V.', role: 'Marketing', country: 'México' },
+  { id: 11, name: 'Felipe O.', role: 'Operaciones', country: 'Chile' },
+  { id: 12, name: 'Gabriela N.', role: 'Finanzas', country: 'Argentina' },
+  { id: 13, name: 'Sebastián A.', role: 'Desarrollo', country: 'Colombia' },
+  { id: 14, name: 'Catalina B.', role: 'RRHH', country: 'Chile' },
+  { id: 15, name: 'Pablo E.', role: 'Ventas', country: 'México' },
+  { id: 16, name: 'Natalia S.', role: 'CS', country: 'Chile' },
+  { id: 17, name: 'Rodrigo J.', role: 'Desarrollo', country: 'Argentina' },
+  { id: 18, name: 'Alejandra U.', role: 'Producto', country: 'Colombia' },
+  { id: 19, name: 'Tomás I.', role: 'Infraestructura', country: 'Chile' },
+  { id: 20, name: 'Daniela Q.', role: 'Diseño', country: 'México' },
+  { id: 21, name: 'Ignacio W.', role: 'Desarrollo', country: 'Chile' },
+  { id: 22, name: 'Florencia K.', role: 'CS', country: 'Argentina' },
+  { id: 23, name: 'Cristóbal Z.', role: 'Ventas', country: 'Colombia' },
+  { id: 24, name: 'María José X.', role: 'Marketing', country: 'México' },
+];
+
+let APP = createEmptyApp();
+let DB_MODE = supabaseClient ? 'remote' : 'demo';
+let currentUserId = null;
+let currentView = 'mi-album';
+let currentFilter = 'all';
+let currentCountryFilter = 'all';
+let selectedOffer = new Set();
+let selectedRequest = new Set();
+let toastTimeout = null;
+
+function createEmptyApp() {
+  return {
+    paises: [],
+    usuarios: [],
+    figuritas: [],
+    usuarioFiguritas: [],
+    intercambios: [],
+    intercambioItems: [],
+    mensajes: [],
+    comentarios: [],
+    paisesById: new Map(),
+    usuariosById: new Map(),
+    figuritasById: new Map(),
+    ownedByUser: {},
+    tradeItemsByTrade: new Map(),
+    stickers: [],
+  };
+}
+
+function loadUiPrefs() {
+  try {
+    const raw = localStorage.getItem(UI_PREFS_KEY);
+    return raw ? JSON.parse(raw) : {};
+  } catch {
+    return {};
+  }
+}
+
+function saveUiPrefs() {
+  try {
+    localStorage.setItem(UI_PREFS_KEY, JSON.stringify({
+      currentUserId,
+      currentView,
+      currentFilter,
+      currentCountryFilter,
+    }));
+  } catch {
+    // ignore
+  }
+}
+
+function setStatus(text) {
+  const el = document.getElementById('db-status');
+  if (el) el.textContent = text;
+}
+
+function seededFraction(seed) {
+  const x = Math.sin(seed) * 10000;
+  return x - Math.floor(x);
+}
+
+function initialsFromName(name) {
+  return String(name || '')
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map(part => part[0]?.toUpperCase() || '')
+    .join('');
+}
+
+function escapeHtml(value) {
+  return String(value ?? '')
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;');
+}
+
+function escapeAttr(value) {
+  return escapeHtml(value).replaceAll('`', '&#96;');
+}
+
+function formatDateTime(value) {
+  if (!value) return '';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return String(value);
+  return new Intl.DateTimeFormat('es-AR', {
+    day: '2-digit',
+    month: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(date);
+}
+
+function sortByIdAscending(a, b) {
+  return Number(a.id) - Number(b.id);
+}
+
+function sortByCreatedAtDesc(a, b) {
+  return new Date(b.created_at || 0) - new Date(a.created_at || 0);
+}
+
+function countDistinctOwned(ownedMap) {
+  return Object.values(ownedMap || {}).filter(qty => Number(qty) > 0).length;
+}
+
+function countDuplicateTypes(ownedMap) {
+  return Object.values(ownedMap || {}).filter(qty => Number(qty) > 1).length;
+}
+
+function getOwnedMap(userId) {
+  return APP.ownedByUser[userId] || {};
+}
+
+function getStickerById(id) {
+  return APP.figuritasById.get(Number(id)) || null;
+}
+
+function getUserById(id) {
+  return APP.usuariosById.get(Number(id)) || null;
+}
+
+function getCountryById(id) {
+  return APP.paisesById.get(Number(id)) || null;
+}
+
+function buildFallbackData() {
+  const paises = COUNTRIES.map((nombre, idx) => ({
+    id: idx + 1,
+    nombre,
+    flag: COUNTRY_FLAGS[nombre],
+    initials: nombre === 'México' ? 'MX' : nombre.slice(0, 2).toUpperCase(),
+  }));
+
+  const countryIdByName = new Map(paises.map(p => [p.nombre, p.id]));
+  const usuarios = TEAM_SEED.map(user => ({
+    id: user.id,
+    name: user.name,
+    role: user.role,
+    pais_id: countryIdByName.get(user.country),
+  }));
+
+  const figuritas = usuarios.map(user => ({
+    id: user.id,
+    user_id: user.id,
+    foto_path: '',
+  }));
+
+  const usuarioFiguritas = [];
+  usuarios.forEach(user => {
+    figuritas.forEach(figurita => {
+      const fraction = seededFraction(user.id * 1000 + figurita.id * 17);
+      if (fraction < 0.55) {
+        usuarioFiguritas.push({
+          user_id: user.id,
+          figurita_id: figurita.id,
+          cantidad: 1,
+          created_at: new Date().toISOString(),
+        });
+      } else if (fraction < 0.72) {
+        usuarioFiguritas.push({
+          user_id: user.id,
+          figurita_id: figurita.id,
+          cantidad: 2,
+          created_at: new Date().toISOString(),
+        });
+      }
+    });
+  });
+
+  return {
+    paises,
+    usuarios,
+    figuritas,
+    usuarioFiguritas,
+    intercambios: [],
+    intercambioItems: [],
+    mensajes: [],
+    comentarios: [],
+  };
+}
+
+async function fetchTable(table, orderColumn = 'id', ascending = true) {
+  const { data, error } = await supabaseClient
+    .from(table)
+    .select('*')
+    .order(orderColumn, { ascending });
+  if (error) throw error;
+  return data || [];
+}
+
+async function loadRemoteData() {
+  const [
+    paises,
+    usuarios,
+    figuritas,
+    usuarioFiguritas,
+    intercambios,
+    intercambioItems,
+    mensajes,
+    comentarios,
+  ] = await Promise.all([
+    fetchTable('paises', 'id'),
+    fetchTable('usuarios', 'id'),
+    fetchTable('figuritas', 'id'),
+    fetchTable('usuario_figuritas', 'created_at'),
+    fetchTable('intercambios', 'created_at'),
+    fetchTable('intercambio_items', 'id'),
+    fetchTable('mensajes', 'created_at'),
+    fetchTable('comentarios', 'created_at'),
+  ]);
+
+  APP = {
+    paises,
+    usuarios,
+    figuritas,
+    usuarioFiguritas,
+    intercambios,
+    intercambioItems,
+    mensajes,
+    comentarios,
+    paisesById: new Map(),
+    usuariosById: new Map(),
+    figuritasById: new Map(),
+    ownedByUser: {},
+    tradeItemsByTrade: new Map(),
+    stickers: [],
+  };
+}
+
+function rebuildDerivedData() {
+  APP.paises = [...APP.paises].sort(sortByIdAscending);
+  APP.usuarios = [...APP.usuarios].sort(sortByIdAscending);
+  APP.figuritas = [...APP.figuritas].sort(sortByIdAscending);
+  APP.usuarioFiguritas = [...APP.usuarioFiguritas];
+  APP.intercambios = [...APP.intercambios].sort(sortByCreatedAtDesc);
+  APP.intercambioItems = [...APP.intercambioItems];
+  APP.mensajes = [...APP.mensajes].sort(sortByCreatedAtDesc);
+  APP.comentarios = [...APP.comentarios].sort(sortByCreatedAtDesc);
+
+  APP.paisesById = new Map(APP.paises.map(p => [Number(p.id), {
+    id: Number(p.id),
+    nombre: p.nombre,
+    flag: p.flag,
+    initials: p.initials,
+  }]));
+
+  APP.usuariosById = new Map(APP.usuarios.map(u => {
+    const pais = APP.paisesById.get(Number(u.pais_id)) || null;
+    const enriched = {
+      id: Number(u.id),
+      name: u.name,
+      role: u.role,
+      pais_id: Number(u.pais_id),
+      pais,
+      country: pais?.nombre || '',
+      flag: pais?.flag || '🏳️',
+      initials: initialsFromName(u.name),
+    };
+    return [enriched.id, enriched];
+  }));
+
+  APP.figuritasById = new Map(APP.figuritas.map(f => {
+    const user = APP.usuariosById.get(Number(f.user_id)) || null;
+    const pais = user?.pais || null;
+    const enriched = {
+      id: Number(f.id),
+      user_id: Number(f.user_id),
+      foto_path: f.foto_path || '',
+      user,
+      name: user?.name || `Usuario ${f.user_id}`,
+      role: user?.role || '',
+      pais_id: user?.pais_id || null,
+      country: pais?.nombre || '',
+      flag: pais?.flag || '🏳️',
+      initials: initialsFromName(user?.name || `#${f.id}`),
+    };
+    return [enriched.id, enriched];
+  }));
+
+  APP.ownedByUser = {};
+  APP.usuarioFiguritas.forEach(row => {
+    const userId = Number(row.user_id);
+    const figuritaId = Number(row.figurita_id);
+    const cantidad = Number(row.cantidad) || 0;
+    if (!APP.ownedByUser[userId]) APP.ownedByUser[userId] = {};
+    if (cantidad > 0) APP.ownedByUser[userId][figuritaId] = cantidad;
+  });
+
+  APP.tradeItemsByTrade = new Map();
+  APP.intercambioItems.forEach(item => {
+    const tradeId = Number(item.intercambio_id);
+    const side = item.side;
+    if (!APP.tradeItemsByTrade.has(tradeId)) {
+      APP.tradeItemsByTrade.set(tradeId, { offer: [], request: [] });
+    }
+    const bucket = APP.tradeItemsByTrade.get(tradeId);
+    if (side === 'offer') bucket.offer.push(Number(item.figurita_id));
+    if (side === 'request') bucket.request.push(Number(item.figurita_id));
+  });
+
+  APP.intercambios = APP.intercambios.map(trade => {
+    const sides = APP.tradeItemsByTrade.get(Number(trade.id)) || { offer: [], request: [] };
+    return {
+      ...trade,
+      id: Number(trade.id),
+      from_user_id: Number(trade.from_user_id),
+      to_user_id: Number(trade.to_user_id),
+      offer: sides.offer,
+      request: sides.request,
+    };
+  });
+
+  APP.stickers = APP.figuritas.map(figurita => {
+    const user = APP.usuariosById.get(Number(figurita.user_id));
+    const pais = user?.pais || null;
+    return {
+      id: Number(figurita.id),
+      user_id: Number(figurita.user_id),
+      foto_path: figurita.foto_path || '',
+      name: user?.name || `Usuario ${figurita.user_id}`,
+      role: user?.role || '',
+      country: pais?.nombre || '',
+      flag: pais?.flag || '🏳️',
+      initials: initialsFromName(user?.name || `#${figurita.id}`),
+    };
+  });
+}
+
+function hydrateUiState() {
+  const prefs = loadUiPrefs();
+  currentUserId = prefs.currentUserId ? Number(prefs.currentUserId) : null;
+  currentView = prefs.currentView || 'mi-album';
+  currentFilter = prefs.currentFilter || 'all';
+  currentCountryFilter = prefs.currentCountryFilter || 'all';
+}
+
+function ensureCurrentUser() {
+  if (!APP.usuarios.length) {
+    currentUserId = null;
+    return;
+  }
+  if (!currentUserId || !APP.usuariosById.has(currentUserId)) {
+    currentUserId = APP.usuarios[0].id;
+  }
+}
+
+function populateCurrentUserSelect() {
+  const sel = document.getElementById('current-user');
+  if (!sel) return;
+
+  const previous = currentUserId;
+  sel.innerHTML = '';
+
+  APP.usuarios.forEach(user => {
+    const option = document.createElement('option');
+    option.value = String(user.id);
+    const enriched = APP.usuariosById.get(Number(user.id));
+    option.textContent = `${enriched?.flag || '🏳️'} ${user.name}`;
+    sel.appendChild(option);
+  });
+
+  if (previous && APP.usuariosById.has(previous)) {
+    currentUserId = previous;
+  } else if (APP.usuarios[0]) {
+    currentUserId = APP.usuarios[0].id;
+  } else {
+    currentUserId = null;
+  }
+
+  sel.value = currentUserId ? String(currentUserId) : '';
+}
+
+function populateMessagePartnerSelect() {
+  const select = document.getElementById('message-partner');
+  if (!select) return;
+
+  const prev = select.value;
+  select.innerHTML = '<option value="">Selecciona una persona...</option>';
+
+  APP.usuarios
+    .filter(user => user.id !== currentUserId)
+    .forEach(user => {
+      const enriched = APP.usuariosById.get(Number(user.id));
+      const option = document.createElement('option');
+      option.value = String(user.id);
+      option.textContent = `${enriched?.flag || '🏳️'} ${user.name} — ${user.role}`;
+      select.appendChild(option);
+    });
+
+  select.value = prev || '';
+}
+
+function populateCommentFiguritaSelect() {
+  const select = document.getElementById('comment-figurita');
+  if (!select) return;
+
+  const prev = select.value;
+  select.innerHTML = '<option value="">Selecciona una figurita...</option>';
+
+  APP.stickers.forEach(sticker => {
+    const option = document.createElement('option');
+    option.value = String(sticker.id);
+    option.textContent = `#${String(sticker.id).padStart(2, '0')} ${sticker.flag} ${sticker.name}`;
+    select.appendChild(option);
+  });
+
+  select.value = prev || '';
+}
+
+function updateBadges() {
+  const tradeBadge = document.getElementById('badge-trades');
+  const messageBadge = document.getElementById('badge-messages');
+
+  const pendingTrades = APP.intercambios.filter(t => t.to_user_id === currentUserId && t.status === 'pending').length;
+  const unreadMessages = APP.mensajes.filter(m => m.to_user_id === currentUserId && !m.is_read).length;
+
+  if (tradeBadge) {
+    if (pendingTrades > 0) {
+      tradeBadge.style.display = 'inline';
+      tradeBadge.textContent = String(pendingTrades);
+    } else {
+      tradeBadge.style.display = 'none';
+    }
+  }
+
+  if (messageBadge) {
+    if (unreadMessages > 0) {
+      messageBadge.style.display = 'inline';
+      messageBadge.textContent = String(unreadMessages);
+    } else {
+      messageBadge.style.display = 'none';
+    }
+  }
+}
+
+function updateNavActive() {
+  const btns = document.querySelectorAll('.nav-btn');
+  const map = ['mi-album', 'todos', 'intercambios', 'mensajes', 'ranking'];
+  btns.forEach(btn => btn.classList.remove('active'));
+  const idx = map.indexOf(currentView);
+  if (idx >= 0 && btns[idx]) btns[idx].classList.add('active');
+}
+
+function persistAndRender() {
+  saveUiPrefs();
+  populateCurrentUserSelect();
+  populateMessagePartnerSelect();
+  populateCommentFiguritaSelect();
+  renderCurrentView();
+  updateBadges();
+}
+
+function renderCurrentView() {
+  updateNavActive();
+
+  switch (currentView) {
+    case 'mi-album':
+      renderMyAlbum();
+      break;
+    case 'todos':
+      renderAlbum();
+      break;
+    case 'intercambios':
+      renderTrades();
+      break;
+    case 'mensajes':
+      renderMessages();
+      break;
+    case 'ranking':
+      renderRanking();
+      break;
+    default:
+      renderMyAlbum();
+      break;
+  }
+}
+
+function renderAll() {
+  populateCurrentUserSelect();
+  populateMessagePartnerSelect();
+  populateCommentFiguritaSelect();
+  renderCurrentView();
+  updateBadges();
+}
+
+function onUserChange() {
+  const value = Number(document.getElementById('current-user').value);
+  currentUserId = value;
+  saveUiPrefs();
+  renderAll();
+}
+
+function switchView(viewName) {
+  currentView = viewName;
+  if (viewName === 'mensajes') {
+    void markMessagesAsRead(currentUserId).catch(error => console.error(error));
+  }
+  saveUiPrefs();
+  renderCurrentView();
+  updateBadges();
+}
+
+function setFilter(filter, btn) {
+  currentFilter = filter;
+  saveUiPrefs();
+  document.querySelectorAll('.filter-btn').forEach(button => button.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  renderMyAlbum();
+}
+
+function setCountryFilter(country) {
+  currentCountryFilter = country;
+  saveUiPrefs();
+  renderAlbum();
+}
+
+function renderMyAlbum() {
+  const owned = getOwnedMap(currentUserId);
+  const total = APP.stickers.length || 1;
+  const ownedCount = countDistinctOwned(owned);
+  const duplicateCount = countDuplicateTypes(owned);
+  const missingCount = total - ownedCount;
+
+  const stats = document.getElementById('stats-bar');
+  if (stats) {
+    stats.innerHTML = `
+      <div class="stat-card">
+        <div class="stat-icon gold">⭐</div>
+        <div class="stat-info">
+          <div class="stat-val">${ownedCount}</div>
+          <div class="stat-label">Tengo</div>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon green">🔄</div>
+        <div class="stat-info">
+          <div class="stat-val">${duplicateCount}</div>
+          <div class="stat-label">Repetidas</div>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon red">❓</div>
+        <div class="stat-info">
+          <div class="stat-val">${missingCount}</div>
+          <div class="stat-label">Me faltan</div>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon blue">📊</div>
+        <div class="stat-info">
+          <div class="stat-val">${Math.round((ownedCount / total) * 100)}%</div>
+          <div class="stat-label">Completo</div>
+        </div>
+      </div>
+    `;
+  }
+
+  const progressText = document.getElementById('progress-text');
+  const progressFill = document.getElementById('progress-fill');
+  if (progressText) progressText.textContent = `${ownedCount} / ${APP.stickers.length}`;
+  if (progressFill) progressFill.style.width = `${(ownedCount / total) * 100}%`;
+
+  renderStickerGrid('my-sticker-grid', currentFilter, currentUserId);
+}
+
+function renderStickerGrid(containerId, filter, userId) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+
+  const owned = getOwnedMap(userId);
+  let filtered = APP.stickers;
+
+  if (filter === 'owned') filtered = APP.stickers.filter(sticker => (owned[sticker.id] || 0) >= 1);
+  if (filter === 'duplicate') filtered = APP.stickers.filter(sticker => (owned[sticker.id] || 0) >= 2);
+  if (filter === 'missing') filtered = APP.stickers.filter(sticker => (owned[sticker.id] || 0) === 0);
+
+  if (filtered.length === 0) {
+    container.innerHTML = '<div class="empty-state" style="grid-column:1/-1;"><div class="big">🗂️</div><p>No hay figuritas en esta categoría</p></div>';
+    return;
+  }
+
+  container.innerHTML = filtered.map(sticker => stickerHTML(sticker, owned[sticker.id] || 0)).join('');
+}
+
+function stickerHTML(sticker, qty) {
+  let stateClass = '';
+  let badgeHTML = '';
+  if (qty === 0) {
+    stateClass = 'missing';
+    badgeHTML = '<div class="sticker-badge missing-badge">Falta</div>';
+  } else if (qty === 1) {
+    stateClass = 'owned';
+    badgeHTML = '<div class="sticker-badge">✓</div>';
+  } else {
+    stateClass = 'duplicate owned';
+    badgeHTML = `<div class="sticker-badge dup">x${qty}</div>`;
+  }
+
+  const bg = BG_COLORS[(sticker.id - 1) % BG_COLORS.length];
+  const imageHTML = sticker.foto_path
+    ? `<img class="sticker-image" src="${escapeAttr(sticker.foto_path)}" alt="${escapeAttr(sticker.name)}">`
+    : `<div class="sticker-avatar" style="background:${bg}; color:rgba(255,255,255,0.9);">${escapeHtml(sticker.initials)}</div>`;
+
+  return `
+    <div class="sticker-card ${stateClass}" onclick="toggleOwn(${sticker.id})" title="Click para cambiar estado">
+      <div class="sticker-photo">
+        ${imageHTML}
+        <div class="sticker-number">#${String(sticker.id).padStart(2, '0')}</div>
+        ${badgeHTML}
+      </div>
+      <div class="sticker-info">
+        <div class="sticker-flag">${escapeHtml(sticker.flag)}</div>
+        <div class="sticker-name">${escapeHtml(sticker.name)}</div>
+        <div class="sticker-role">${escapeHtml(sticker.role)}</div>
+        <div class="sticker-country">${escapeHtml(sticker.country)}</div>
+      </div>
+    </div>
+  `;
+}
+
+async function toggleOwn(stickerId) {
+  const owned = getOwnedMap(currentUserId);
+  const current = owned[stickerId] || 0;
+  const next = current === 0 ? 1 : current === 1 ? 2 : 0;
+
+  try {
+    if (supabaseClient) {
+      const { error } = await supabaseClient.rpc('set_usuario_figurita_qty', {
+        p_user_id: currentUserId,
+        p_figurita_id: stickerId,
+        p_qty: next,
+      });
+      if (error) throw error;
+      await reloadFromSource();
+    } else {
+      setLocalStickerQty(currentUserId, stickerId, next);
+      rebuildDerivedData();
+      renderAll();
+    }
+
+    const sticker = getStickerById(stickerId);
+    const msgs = ['❌ Marcada como faltante', '✅ ¡Figurita conseguida!', '🔄 Marcada como repetida'];
+    showToast(`${msgs[next]} — ${sticker?.name || ''}`);
+  } catch (error) {
+    console.error(error);
+    showToast('No se pudo actualizar la figurita');
+  }
+}
+
+function renderAlbum() {
+  const btns = document.getElementById('country-filter-btns');
+  if (btns) {
+    const countryButtons = [
+      `<button class="filter-btn ${currentCountryFilter === 'all' ? 'active' : ''}" onclick="setCountryFilter('all')">Todos</button>`,
+      ...APP.paises.map(country => `
+        <button class="filter-btn ${currentCountryFilter === country.nombre ? 'active' : ''}" onclick="setCountryFilter('${escapeAttr(country.nombre)}')">
+          ${escapeHtml(country.flag)} ${escapeHtml(country.nombre)}
+        </button>
+      `),
+    ];
+    btns.innerHTML = countryButtons.join('');
+  }
+
+  const container = document.getElementById('album-by-country');
+  if (!container) return;
+
+  const countries = currentCountryFilter === 'all'
+    ? APP.paises
+    : APP.paises.filter(country => country.nombre === currentCountryFilter);
+
+  const owned = getOwnedMap(currentUserId);
+  container.innerHTML = countries.map(country => {
+    const members = APP.stickers.filter(sticker => sticker.country === country.nombre);
+    return `
+      <div class="country-section">
+        <div class="country-header">
+          <div class="country-flag-big">${escapeHtml(country.flag)}</div>
+          <div class="country-name">${escapeHtml(country.nombre)}</div>
+          <div class="country-count">${members.length} figuritas</div>
+        </div>
+        <div class="sticker-grid">
+          ${members.map(sticker => stickerHTML(sticker, owned[sticker.id] || 0)).join('')}
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function renderTrades() {
+  const incoming = APP.intercambios.filter(trade => trade.to_user_id === currentUserId && trade.status === 'pending');
+  const outgoing = APP.intercambios.filter(trade => trade.from_user_id === currentUserId);
+
+  const incomingEl = document.getElementById('incoming-trades');
+  if (incomingEl) {
+    incomingEl.innerHTML = incoming.length === 0
+      ? '<div class="empty-state" style="padding:40px 0;"><div class="big" style="font-size:40px;">📭</div><p>No tienes solicitudes pendientes</p></div>'
+      : incoming.map(trade => tradeCardHTML(trade, true)).join('');
+  }
+
+  const outgoingEl = document.getElementById('outgoing-trades');
+  if (outgoingEl) {
+    outgoingEl.innerHTML = outgoing.length === 0
+      ? '<div class="empty-state" style="padding:30px 0;"><div class="big" style="font-size:36px;">📤</div><p>Aún no has propuesto intercambios</p></div>'
+      : outgoing.map(trade => tradeCardHTML(trade, false)).join('');
+  }
+}
+
+function tradeCardHTML(trade, isIncoming) {
+  const fromUser = getUserById(trade.from_user_id);
+  const toUser = getUserById(trade.to_user_id);
+  const statusMap = { pending: 'Pendiente', accepted: 'Aceptado', rejected: 'Rechazado', cancelled: 'Cancelado' };
+  const statusClass = { pending: 'status-pending', accepted: 'status-accepted', rejected: 'status-rejected', cancelled: 'status-rejected' };
+
+  const offerStickers = (trade.offer || []).map(id => miniStickerHTML(getStickerById(id))).join('');
+  const requestStickers = (trade.request || []).map(id => miniStickerHTML(getStickerById(id))).join('');
+
+  const actions = isIncoming && trade.status === 'pending'
+    ? `
+      <div class="trade-actions">
+        <button class="btn btn-accept" onclick="respondTrade(${trade.id}, 'accepted')">✓ Aceptar</button>
+        <button class="btn btn-reject" onclick="respondTrade(${trade.id}, 'rejected')">✗ Rechazar</button>
+      </div>
+    `
+    : '';
+
+  const createdAt = formatDateTime(trade.created_at || trade.time || '');
+  const msg = trade.msg ? `<div style="font-size:12px; color:rgba(255,255,255,0.5); font-style:italic; margin-bottom:10px; padding:6px 10px; background:rgba(255,255,255,0.04); border-radius:6px;">"${escapeHtml(trade.msg)}"</div>` : '';
+
+  return `
+    <div class="trade-request">
+      <div class="trade-parties">
+        <div>
+          <div class="trade-user">${escapeHtml(fromUser?.flag || '🏳️')} ${escapeHtml(fromUser?.name || 'Usuario')}</div>
+          <div style="font-size:11px; color:rgba(255,255,255,0.4);">ofrece →</div>
+        </div>
+        <div class="trade-arrow" style="flex:1; text-align:center;">⇄</div>
+        <div style="text-align:right;">
+          <div class="trade-user">${escapeHtml(toUser?.flag || '🏳️')} ${escapeHtml(toUser?.name || 'Usuario')}</div>
+          <div style="font-size:11px; color:rgba(255,255,255,0.4);">← pide</div>
+        </div>
+      </div>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:10px;">
+        <div>
+          <div style="font-size:10px; color:rgba(255,255,255,0.4); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:6px;">Da</div>
+          <div class="trade-stickers">${offerStickers}</div>
+        </div>
+        <div>
+          <div style="font-size:10px; color:rgba(255,255,255,0.4); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:6px;">Recibe</div>
+          <div class="trade-stickers">${requestStickers}</div>
+        </div>
+      </div>
+      ${msg}
+      <div style="display:flex; align-items:center; justify-content:space-between;">
+        <span class="trade-status ${statusClass[trade.status] || ''}">${statusMap[trade.status] || trade.status}</span>
+        <span style="font-size:11px; color:rgba(255,255,255,0.25);">${createdAt}</span>
+      </div>
+      ${actions}
+    </div>
+  `;
+}
+
+function miniStickerHTML(sticker) {
+  if (!sticker) return '<div class="mini-sticker">Figurita desconocida</div>';
+  return `<div class="mini-sticker">${escapeHtml(sticker.flag)} <span class="num">#${String(sticker.id).padStart(2, '0')}</span> ${escapeHtml(sticker.name.split(' ')[0])}</div>`;
+}
+
+async function respondTrade(tradeId, response) {
+  try {
+    if (supabaseClient) {
+      const { error } = await supabaseClient.rpc('responder_intercambio', {
+        p_intercambio_id: tradeId,
+        p_status: response,
+      });
+      if (error) throw error;
+      await reloadFromSource();
+    } else {
+      demoRespondTrade(tradeId, response);
+      rebuildDerivedData();
+      renderAll();
+    }
+
+    if (response === 'accepted') {
+      showToast('🎉 ¡Intercambio completado! Las figuritas cambiaron de dueño');
+    } else {
+      showToast('❌ Intercambio rechazado');
+    }
+  } catch (error) {
+    console.error(error);
+    showToast('No se pudo responder el intercambio');
+  }
+}
+
+function openModal() {
+  selectedOffer = new Set();
+  selectedRequest = new Set();
+
+  const sel = document.getElementById('trade-partner');
+  if (sel) {
+    sel.innerHTML = '<option value="">Selecciona una persona...</option>';
+    APP.usuarios
+      .filter(user => user.id !== currentUserId)
+      .forEach(user => {
+        const enriched = APP.usuariosById.get(Number(user.id));
+        const option = document.createElement('option');
+        option.value = String(user.id);
+        option.textContent = `${enriched?.flag || '🏳️'} ${user.name} — ${user.role}`;
+        sel.appendChild(option);
+      });
+    sel.onchange = () => {
+      selectedRequest = new Set();
+      refreshPickGrids();
+    };
+  }
+
+  const msgInput = document.getElementById('trade-msg');
+  if (msgInput) msgInput.value = '';
+  refreshPickGrids();
+  document.getElementById('trade-modal').classList.add('open');
+}
+
+function refreshPickGrids() {
+  const partnerId = Number(document.getElementById('trade-partner').value || 0);
+  const myOwned = getOwnedMap(currentUserId);
+  const partnerOwned = getOwnedMap(partnerId);
+
+  const myDupes = APP.stickers.filter(sticker => (myOwned[sticker.id] || 0) >= 2);
+  renderPickGrid('offer-grid', myDupes, selectedOffer, 'offer');
+
+  const partnerDupesIMissing = partnerId
+    ? APP.stickers.filter(sticker => (partnerOwned[sticker.id] || 0) >= 2 && (myOwned[sticker.id] || 0) === 0)
+    : [];
+  renderPickGrid('request-grid', partnerDupesIMissing, selectedRequest, 'request');
+}
+
+function renderPickGrid(containerId, stickers, selected, type) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+  if (stickers.length === 0) {
+    container.innerHTML = `<div style="color:rgba(255,255,255,0.3); font-size:13px; padding:16px; grid-column:1/-1; text-align:center;">${type === 'offer' ? 'No tienes repetidas aún' : 'Selecciona un compañero primero'}</div>`;
+    return;
+  }
+
+  container.innerHTML = stickers.map(sticker => `
+    <div class="pick-item ${selected.has(sticker.id) ? 'selected-pick' : ''}" onclick="togglePick(${sticker.id}, '${type}')">
+      <div class="pick-flag">${escapeHtml(sticker.flag)}</div>
+      <div class="pick-num">#${String(sticker.id).padStart(2, '0')}</div>
+      <div class="pick-name">${escapeHtml(sticker.name.split(' ')[0])}</div>
+    </div>
+  `).join('');
+}
+
+function togglePick(id, type) {
+  const set = type === 'offer' ? selectedOffer : selectedRequest;
+  if (set.has(id)) set.delete(id);
+  else set.add(id);
+  refreshPickGrids();
+}
+
+async function submitTrade() {
+  const partnerId = Number(document.getElementById('trade-partner').value || 0);
+  if (!partnerId) return showToast('⚠️ Selecciona un compañero');
+  if (selectedOffer.size === 0) return showToast('⚠️ Selecciona qué figuritas ofreces');
+  if (selectedRequest.size === 0) return showToast('⚠️ Selecciona qué figuritas pides');
+
+  const msg = document.getElementById('trade-msg').value.trim();
+  try {
+    if (supabaseClient) {
+      const { error } = await supabaseClient.rpc('crear_intercambio', {
+        p_from_user_id: currentUserId,
+        p_to_user_id: partnerId,
+        p_msg: msg || null,
+        p_offer_ids: [...selectedOffer],
+        p_request_ids: [...selectedRequest],
+      });
+      if (error) throw error;
+      await reloadFromSource();
+    } else {
+      demoCreateTrade(currentUserId, partnerId, msg, [...selectedOffer], [...selectedRequest]);
+      rebuildDerivedData();
+      renderAll();
+    }
+
+    closeModal();
+    const partner = getUserById(partnerId);
+    showToast(`✅ Propuesta enviada a ${partner?.name || 'tu compañero'}!`);
+  } catch (error) {
+    console.error(error);
+    showToast('No se pudo enviar la propuesta');
+  }
+}
+
+function closeModal() {
+  document.getElementById('trade-modal').classList.remove('open');
+}
+
+function renderMessages() {
+  populateMessagePartnerSelect();
+  populateCommentFiguritaSelect();
+
+  const directMessages = APP.mensajes
+    .filter(message => message.from_user_id === currentUserId || message.to_user_id === currentUserId)
+    .sort(sortByCreatedAtDesc);
+
+  const messagesList = document.getElementById('messages-list');
+  if (messagesList) {
+    if (directMessages.length === 0) {
+      messagesList.innerHTML = '<div class="empty-state" style="padding:30px 0;"><div class="big" style="font-size:40px;">💬</div><p>No tienes mensajes directos todavía</p></div>';
+    } else {
+      messagesList.innerHTML = directMessages.map(message => messageCardHTML(message)).join('');
+    }
+  }
+
+  const comments = APP.comentarios
+    .filter(comment => comment.figurita_id != null)
+    .sort(sortByCreatedAtDesc)
+    .slice(0, 30);
+
+  const commentsList = document.getElementById('comments-list');
+  if (commentsList) {
+    if (comments.length === 0) {
+      commentsList.innerHTML = '<div class="empty-state" style="padding:30px 0;"><div class="big" style="font-size:40px;">📝</div><p>No hay comentarios todavía</p></div>';
+    } else {
+      commentsList.innerHTML = comments.map(comment => commentCardHTML(comment)).join('');
+    }
+  }
+}
+
+function messageCardHTML(message) {
+  const fromUser = getUserById(message.from_user_id);
+  const toUser = message.to_user_id ? getUserById(message.to_user_id) : null;
+  const isMine = message.from_user_id === currentUserId;
+  const statusTag = isMine ? 'Enviado' : (message.is_read ? 'Leído' : 'Nuevo');
+
+  return `
+    <div class="message-card" style="${isMine ? 'border-color:rgba(245,200,66,0.25);' : ''}">
+      <div class="message-head">
+        <div class="message-user">${escapeHtml(fromUser?.name || 'Usuario')} → ${escapeHtml(toUser?.name || 'Todos')}</div>
+        <div class="message-meta">${statusTag} · ${formatDateTime(message.created_at)}</div>
+      </div>
+      <div class="message-body">${escapeHtml(message.body)}</div>
+    </div>
+  `;
+}
+
+function commentCardHTML(comment) {
+  const user = getUserById(comment.user_id);
+  const sticker = comment.figurita_id ? getStickerById(comment.figurita_id) : null;
+  const target = sticker ? `#${String(sticker.id).padStart(2, '0')} ${sticker.name}` : 'Objetivo';
+
+  return `
+    <div class="comment-card">
+      <div class="comment-head">
+        <div class="comment-user">${escapeHtml(user?.name || 'Usuario')} <span style="color:rgba(255,255,255,0.4); font-weight:600;">en ${escapeHtml(target)}</span></div>
+        <div class="comment-meta">${formatDateTime(comment.created_at)}</div>
+      </div>
+      <div class="comment-body">${escapeHtml(comment.body)}</div>
+    </div>
+  `;
+}
+
+async function sendMessage() {
+  const partnerId = Number(document.getElementById('message-partner').value || 0);
+  const bodyEl = document.getElementById('message-body');
+  const body = bodyEl.value.trim();
+
+  if (!partnerId) return showToast('⚠️ Selecciona un destinatario');
+  if (!body) return showToast('⚠️ Escribe un mensaje');
+
+  try {
+    if (supabaseClient) {
+      const { error } = await supabaseClient.rpc('crear_mensaje', {
+        p_from_user_id: currentUserId,
+        p_to_user_id: partnerId,
+        p_body: body,
+      });
+      if (error) throw error;
+      await reloadFromSource();
+    } else {
+      demoCreateMessage(currentUserId, partnerId, body);
+      rebuildDerivedData();
+      renderAll();
+    }
+
+    bodyEl.value = '';
+    showToast('✅ Mensaje enviado');
+  } catch (error) {
+    console.error(error);
+    showToast('No se pudo enviar el mensaje');
+  }
+}
+
+async function addComment() {
+  const figuritaId = Number(document.getElementById('comment-figurita').value || 0);
+  const bodyEl = document.getElementById('comment-body');
+  const body = bodyEl.value.trim();
+
+  if (!figuritaId) return showToast('⚠️ Selecciona una figurita');
+  if (!body) return showToast('⚠️ Escribe un comentario');
+
+  try {
+    if (supabaseClient) {
+      const { error } = await supabaseClient.rpc('crear_comentario', {
+        p_user_id: currentUserId,
+        p_figurita_id: figuritaId,
+        p_body: body,
+      });
+      if (error) throw error;
+      await reloadFromSource();
+    } else {
+      demoCreateComment(currentUserId, figuritaId, body);
+      rebuildDerivedData();
+      renderAll();
+    }
+
+    bodyEl.value = '';
+    showToast('✅ Comentario publicado');
+  } catch (error) {
+    console.error(error);
+    showToast('No se pudo publicar el comentario');
+  }
+}
+
+function renderRanking() {
+  const scores = APP.usuarios.map(user => {
+    const owned = getOwnedMap(user.id);
+    const count = countDistinctOwned(owned);
+    const pct = APP.stickers.length ? Math.round((count / APP.stickers.length) * 100) : 0;
+    const enriched = APP.usuariosById.get(Number(user.id));
+    return {
+      ...user,
+      flag: enriched?.flag || '🏳️',
+      initials: enriched?.initials || initialsFromName(user.name),
+      country: enriched?.country || '',
+      count,
+      pct,
+    };
+  }).sort((a, b) => b.count - a.count || a.name.localeCompare(b.name));
+
+  const max = scores[0]?.count || 1;
+  const container = document.getElementById('ranking-list');
+  if (!container) return;
+
+  container.innerHTML = scores.map((score, index) => {
+    const numClass = index === 0 ? 'top-1' : index === 1 ? 'top-2' : index === 2 ? 'top-3' : '';
+    const bg = BG_COLORS[(score.id - 1) % BG_COLORS.length];
+    const medal = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : '';
+    return `
+      <div class="rank-row">
+        <div class="rank-num ${numClass}">${index + 1}</div>
+        <div class="rank-avatar" style="background:${bg}; color:rgba(255,255,255,0.9); font-size:14px;">${escapeHtml(score.initials)}</div>
+        <div class="rank-info">
+          <div class="rank-name">${escapeHtml(score.flag)} ${escapeHtml(score.name)} ${medal}</div>
+          <div class="rank-meta">${escapeHtml(score.role)} · ${escapeHtml(score.country)}</div>
+        </div>
+        <div class="rank-bar-wrap">
+          <div class="rank-bar">
+            <div class="rank-fill" style="width:${(score.count / max) * 100}%"></div>
+          </div>
+          <div class="rank-pct">${score.pct}% del álbum</div>
+        </div>
+        <div class="rank-count">${score.count}<span style="font-size:13px; color:rgba(255,255,255,0.3); font-family:'Nunito',sans-serif; font-weight:400;">/${APP.stickers.length}</span></div>
+      </div>
+    `;
+  }).join('');
+}
+
+async function markMessagesAsRead(userId) {
+  if (!userId) return;
+  if (supabaseClient) {
+    const { error } = await supabaseClient.rpc('marcar_mensajes_leidos', {
+      p_user_id: userId,
+    });
+    if (error) throw error;
+    await reloadFromSource(false);
+    return;
+  }
+
+  APP.mensajes.forEach(message => {
+    if (message.to_user_id === userId) message.is_read = true;
+  });
+  rebuildDerivedData();
+  updateBadges();
+}
+
+function setLocalStickerQty(userId, figuritaId, qty) {
+  const idx = APP.usuarioFiguritas.findIndex(row => Number(row.user_id) === Number(userId) && Number(row.figurita_id) === Number(figuritaId));
+  if (qty <= 0) {
+    if (idx >= 0) APP.usuarioFiguritas.splice(idx, 1);
+    return;
+  }
+
+  const row = {
+    user_id: Number(userId),
+    figurita_id: Number(figuritaId),
+    cantidad: Number(qty),
+    created_at: new Date().toISOString(),
+  };
+
+  if (idx >= 0) APP.usuarioFiguritas[idx] = row;
+  else APP.usuarioFiguritas.push(row);
+}
+
+function getTradeItemRows(tradeId) {
+  return APP.intercambioItems.filter(row => Number(row.intercambio_id) === Number(tradeId));
+}
+
+function demoCreateTrade(fromUserId, toUserId, msg, offerIds, requestIds) {
+  const tradeId = Date.now();
+  const trade = {
+    id: tradeId,
+    from_user_id: Number(fromUserId),
+    to_user_id: Number(toUserId),
+    msg: msg || null,
+    status: 'pending',
+    created_at: new Date().toISOString(),
+    responded_at: null,
+    offer: [...offerIds],
+    request: [...requestIds],
+  };
+
+  APP.intercambios.unshift(trade);
+  offerIds.forEach(figuritaId => {
+    APP.intercambioItems.push({
+      id: Number(`${tradeId}${figuritaId}1`),
+      intercambio_id: tradeId,
+      figurita_id: figuritaId,
+      side: 'offer',
+      created_at: trade.created_at,
+    });
+  });
+  requestIds.forEach(figuritaId => {
+    APP.intercambioItems.push({
+      id: Number(`${tradeId}${figuritaId}2`),
+      intercambio_id: tradeId,
+      figurita_id: figuritaId,
+      side: 'request',
+      created_at: trade.created_at,
+    });
+  });
+}
+
+function demoApplyTrade(trade) {
+  const offerIds = (trade.offer || []).map(Number);
+  const requestIds = (trade.request || []).map(Number);
+  const fromUserId = Number(trade.from_user_id);
+  const toUserId = Number(trade.to_user_id);
+
+  const checkCanTransfer = (userId, figuritaId) => getLocalQty(userId, figuritaId) > 0;
+  if (offerIds.some(figuritaId => !checkCanTransfer(fromUserId, figuritaId))) {
+    throw new Error('El usuario no tiene suficientes figuritas para ofrecer');
+  }
+  if (requestIds.some(figuritaId => !checkCanTransfer(toUserId, figuritaId))) {
+    throw new Error('El otro usuario ya no tiene las figuritas solicitadas');
+  }
+
+  offerIds.forEach(figuritaId => {
+    setLocalStickerQty(fromUserId, figuritaId, getLocalQty(fromUserId, figuritaId) - 1);
+    setLocalStickerQty(toUserId, figuritaId, getLocalQty(toUserId, figuritaId) + 1);
+  });
+
+  requestIds.forEach(figuritaId => {
+    setLocalStickerQty(toUserId, figuritaId, getLocalQty(toUserId, figuritaId) - 1);
+    setLocalStickerQty(fromUserId, figuritaId, getLocalQty(fromUserId, figuritaId) + 1);
+  });
+}
+
+function getLocalQty(userId, figuritaId) {
+  const row = APP.usuarioFiguritas.find(item => Number(item.user_id) === Number(userId) && Number(item.figurita_id) === Number(figuritaId));
+  return row ? Number(row.cantidad) : 0;
+}
+
+function demoRespondTrade(tradeId, response) {
+  const trade = APP.intercambios.find(item => Number(item.id) === Number(tradeId));
+  if (!trade) return;
+  if (trade.status !== 'pending') throw new Error('Intercambio ya procesado');
+
+  if (response === 'accepted') {
+    demoApplyTrade(trade);
+  }
+
+  trade.status = response;
+  trade.responded_at = new Date().toISOString();
+}
+
+function demoCreateMessage(fromUserId, toUserId, body) {
+  APP.mensajes.unshift({
+    id: Date.now(),
+    from_user_id: Number(fromUserId),
+    to_user_id: Number(toUserId),
+    intercambio_id: null,
+    body,
+    is_read: false,
+    created_at: new Date().toISOString(),
+  });
+}
+
+function demoCreateComment(userId, figuritaId, body) {
+  APP.comentarios.unshift({
+    id: Date.now(),
+    user_id: Number(userId),
+    figurita_id: Number(figuritaId),
+    intercambio_id: null,
+    body,
+    created_at: new Date().toISOString(),
+  });
+}
+
+async function reloadFromSource(keepView = true) {
+  if (supabaseClient) {
+    await loadRemoteData();
+  }
+  rebuildDerivedData();
+  ensureCurrentUser();
+  populateCurrentUserSelect();
+  populateMessagePartnerSelect();
+  populateCommentFiguritaSelect();
+  if (keepView) renderAll();
+  else {
+    renderCurrentView();
+    updateBadges();
+  }
+}
+
+function showToast(msg) {
+  const el = document.getElementById('toast');
+  if (!el) return;
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(toastTimeout);
+  toastTimeout = setTimeout(() => el.classList.remove('show'), 3000);
+}
+
+async function boot() {
+  hydrateUiState();
+  setStatus(supabaseClient ? 'Conectando a DB...' : 'Modo local');
+
+  try {
+    if (supabaseClient) {
+      await loadRemoteData();
+      DB_MODE = 'remote';
+      setStatus('DB conectada');
+    } else {
+      APP = buildFallbackData();
+      DB_MODE = 'demo';
+      setStatus('Modo local');
+    }
+  } catch (error) {
+    console.error(error);
+    APP = buildFallbackData();
+    DB_MODE = 'demo';
+    setStatus('Modo local');
+    showToast('No se pudo conectar a la DB, usando modo local');
+  }
+
+  rebuildDerivedData();
+  ensureCurrentUser();
+  populateCurrentUserSelect();
+  populateMessagePartnerSelect();
+  populateCommentFiguritaSelect();
+  updateNavActive();
+  renderAll();
+  if (currentView === 'mensajes') {
+    void markMessagesAsRead(currentUserId).catch(error => console.error(error));
+  }
+}
+
+document.addEventListener('DOMContentLoaded', boot);
