@@ -163,6 +163,10 @@
   .btn-logout {
     padding: 7px 12px;
   }
+  .btn-codes {
+    padding: 7px 12px;
+    min-width: 112px;
+  }
 
   /* ── AUTH ── */
   .auth-screen {
@@ -633,6 +637,7 @@
   .btn-reject { background: rgba(231,76,60,0.2); color: var(--red); border: 1px solid rgba(231,76,60,0.3); }
   .btn-propose { background: var(--gold); color: var(--navy); }
   .btn-secondary { background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.7); border: 1px solid rgba(255,255,255,0.12); }
+  .btn-codes.active { background: var(--gold); color: var(--navy); border-color: var(--gold); }
   .btn-full { width: 100%; text-align: center; padding: 12px; font-size: 14px; margin-top: 8px; }
 
   .trade-status {
@@ -700,6 +705,44 @@
     margin-bottom: 10px;
   }
   .modal select option { background: var(--navy-mid); }
+
+  .code-target {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 12px;
+    padding: 12px 14px;
+    margin-bottom: 10px;
+  }
+  .code-target-emoji {
+    width: 44px;
+    height: 44px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(245,200,66,0.14);
+    font-size: 20px;
+    flex-shrink: 0;
+  }
+  .code-target-info {
+    min-width: 0;
+  }
+  .code-target-name {
+    font-size: 15px;
+    font-weight: 900;
+    color: var(--white);
+    line-height: 1.2;
+  }
+  .code-target-meta {
+    font-size: 11px;
+    color: rgba(255,255,255,0.45);
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    margin-top: 3px;
+  }
 
   .pick-grid {
     display: grid;
@@ -861,6 +904,66 @@
   .empty-state .big { font-size: 64px; margin-bottom: 12px; }
   .empty-state p { font-size: 14px; }
 
+  /* ── CODES VIEW ── */
+  .codes-shell {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+  }
+  .codes-subtitle {
+    font-size: 13px;
+    color: rgba(255,255,255,0.46);
+    margin-top: 4px;
+  }
+  .codes-card {
+    background: var(--navy-mid);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: var(--shadow);
+  }
+  .codes-table-wrap {
+    overflow-x: auto;
+  }
+  .codes-table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 420px;
+  }
+  .codes-table thead th {
+    text-align: left;
+    padding: 14px 18px;
+    font-size: 11px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.45);
+    background: rgba(255,255,255,0.03);
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+  }
+  .codes-table tbody td {
+    padding: 13px 18px;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    font-size: 14px;
+    color: var(--white);
+  }
+  .codes-table tbody tr:hover {
+    background: rgba(255,255,255,0.03);
+  }
+  .codes-name {
+    font-weight: 800;
+  }
+  .codes-secret {
+    font-family: 'Courier New', monospace;
+    font-size: 13px;
+    letter-spacing: 1px;
+    color: var(--gold);
+  }
+  .codes-empty {
+    padding: 28px;
+    text-align: center;
+    color: rgba(255,255,255,0.35);
+  }
+
   @media (max-width: 768px) {
     .trades-layout { grid-template-columns: 1fr; }
     .social-layout { grid-template-columns: 1fr; }
@@ -923,6 +1026,7 @@
       <div class="conn-pill" id="db-status">Cargando...</div>
       <button type="button" class="user-chip session-pill" id="current-user-label">Inicia</button>
       <button type="button" class="btn btn-secondary btn-logout hidden" id="logout-btn">Salir</button>
+      <button type="button" class="btn btn-secondary btn-codes hidden" id="codes-btn">Ver códigos</button>
     </div>
   </div>
 </header>
@@ -1012,6 +1116,31 @@
     <div class="ranking-list" id="ranking-list"></div>
   </div>
 
+  <!-- CODIGOS -->
+  <div class="view" id="view-codigos">
+    <div class="codes-shell">
+      <div class="section-header" style="margin-bottom:0;">
+        <div>
+          <div class="section-title">🔐 Códigos Secretos</div>
+          <div class="codes-subtitle">Vista oculta protegida por clave. Solo muestra nombre y secret_code por figurita.</div>
+        </div>
+      </div>
+      <div class="codes-card">
+        <div class="codes-table-wrap">
+          <table class="codes-table">
+            <thead>
+              <tr>
+                <th>Figurita</th>
+                <th>Código</th>
+              </tr>
+            </thead>
+            <tbody id="codes-table-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
 </main>
 
 <!-- MODAL PROPONER INTERCAMBIO -->
@@ -1049,11 +1178,64 @@
   </div>
 </div>
 
+<!-- MODAL CÓDIGO SECRETO -->
+<div class="modal-overlay" id="code-modal">
+  <div class="modal" style="position:relative;">
+    <button class="modal-close" onclick="closeStickerCodeModal()">✕</button>
+    <h2>Activar Figurita</h2>
+
+    <div class="modal-section">
+      <div class="modal-label">Figurita a activar</div>
+      <div class="code-target" id="code-modal-target">
+        <div class="code-target-emoji">🔒</div>
+        <div class="code-target-info">
+          <div class="code-target-name">Selecciona una figurita</div>
+          <div class="code-target-meta">Ingresá su código secreto</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-section">
+      <div class="modal-label">Código secreto</div>
+      <input type="text" id="sticker-code-input" placeholder="Pegá o escribí el código" autocomplete="off" autocapitalize="characters" spellcheck="false">
+    </div>
+
+    <div class="auth-error" id="sticker-code-error"></div>
+
+    <div class="modal-actions">
+      <button class="btn btn-propose" style="flex:1; padding:12px;" onclick="submitStickerCode()">Activar</button>
+      <button class="btn btn-secondary" style="padding:12px 20px;" onclick="closeStickerCodeModal()">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL ACCESO CODIGOS -->
+<div class="modal-overlay" id="codes-access-modal">
+  <div class="modal" style="position:relative;">
+    <button class="modal-close" onclick="closeCodesAccessModal()">✕</button>
+    <h2>Ver Códigos</h2>
+
+    <div class="auth-subtitle">Ingresá la clave para abrir la vista oculta.</div>
+
+    <div class="modal-section">
+      <div class="modal-label">Clave de acceso</div>
+      <input type="password" id="codes-access-input" placeholder="aguantecolegium" autocomplete="off" spellcheck="false">
+    </div>
+
+    <div class="auth-error" id="codes-access-error"></div>
+
+    <div class="modal-actions">
+      <button class="btn btn-propose" style="flex:1; padding:12px;" onclick="submitCodesAccess()">Abrir vista</button>
+      <button class="btn btn-secondary" style="padding:12px 20px;" onclick="closeCodesAccessModal()">Cancelar</button>
+    </div>
+  </div>
+</div>
+
 <!-- TOAST -->
 <div class="toast" id="toast"></div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="app.js?v=20260522-2"></script>
+<script src="app.js?v=20260522-6"></script>
 </body>
 </html>

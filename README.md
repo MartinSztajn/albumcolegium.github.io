@@ -15,6 +15,16 @@
 1. Crear un proyecto en Supabase.
 2. Ejecutar `db/schema.sql`.
 3. Ejecutar `db/seed.sql`.
-4. Reemplazar en [app.js](/Users/martin_sztajn/Desktop/albumcolegium.github.io/app.js) los placeholders `PUT_SUPABASE_URL_HERE` y `PUT_SUPABASE_ANON_KEY_HERE`.
+4. Configurar la URL y la `anon key` de Supabase en [app.js](/Users/martin_sztajn/Desktop/albumcolegium.github.io/app.js).
+
+Si necesitás ver los códigos secretos generados por la DB, corré en el SQL Editor:
+
+```sql
+select id, secret_code
+from public.figuritas
+order by id;
+```
+
+La vista oculta del frontend usa `codigos_sectretos` y se habilita con la clave `aguantecolegium`.
 
 Con eso, `usuarios`, `figuritas`, `usuario_figuritas`, `intercambios`, `mensajes` y `comentarios` quedan sincronizados entre usuarios.

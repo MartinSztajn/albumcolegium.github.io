@@ -25,9 +25,12 @@ const BG_COLORS = [
   '#3a1a2d', '#1a2a4a', '#2a3a1a', '#3a2a1b', '#1a1a4a', '#4a2a1a',
   '#1a4a1a', '#2a1a4a', '#3a1b1a', '#1a3b2a', '#2a4a1a', '#1a2a3a',
 ];
+const SECRET_CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 
 const UI_PREFS_KEY = 'colegium_album_ui_v1';
 const AUTH_SESSION_KEY = 'colegium_album_auth_v1';
+const CODES_ACCESS_KEY = 'colegium_album_codes_access_v1';
+const CODES_ACCESS_CODE = 'aguantecolegium';
 
 const TEAM_SEED = [
   { id: 1, name: 'Ariel G.', role: 'CEO', country: 'Chile' },
@@ -64,6 +67,11 @@ let currentFilter = 'all';
 let currentCountryFilter = 'all';
 let selectedOffer = new Set();
 let selectedRequest = new Set();
+let pendingStickerId = null;
+let codesAccessGranted = false;
+let secretCodesRows = [];
+let secretCodesLoaded = false;
+let secretCodesLoading = false;
 let toastTimeout = null;
 
 function createEmptyApp() {
@@ -124,6 +132,25 @@ function initialsFromName(name) {
     .slice(0, 2)
     .map(part => part[0]?.toUpperCase() || '')
     .join('');
+}
+
+function generateDemoSecretCode(seed, length = 8) {
+  let value = Math.abs(Math.floor(seed)) + 1;
+  let code = '';
+
+  for (let i = 0; i < length; i += 1) {
+    value = (value * 1664525 + 1013904223) % 4294967296;
+    code += SECRET_CODE_ALPHABET[value % SECRET_CODE_ALPHABET.length];
+  }
+
+  return code;
+}
+
+function normalizeStickerCode(value) {
+  return String(value || '')
+    .trim()
+    .toUpperCase()
+    .replace(/[^A-Z0-9]/g, '');
 }
 
 function escapeHtml(value) {
@@ -203,6 +230,7 @@ function buildFallbackData() {
     id: user.id,
     user_id: user.id,
     foto_path: '',
+    secret_code: generateDemoSecretCode(user.id * 997),
   }));
 
   const usuarioFiguritas = [];
@@ -239,10 +267,10 @@ function buildFallbackData() {
   };
 }
 
-async function fetchTable(table, orderColumn = 'id', ascending = true) {
+async function fetchTable(table, orderColumn = 'id', ascending = true, columns = '*') {
   const { data, error } = await supabaseClient
     .from(table)
-    .select('*')
+    .select(columns)
     .order(orderColumn, { ascending });
   if (error) throw error;
   return data || [];
@@ -261,7 +289,7 @@ async function loadRemoteData() {
   ] = await Promise.all([
     fetchTable('paises', 'id'),
     fetchTable('usuarios', 'id'),
-    fetchTable('figuritas', 'id'),
+    fetchTable('figuritas', 'id', true, 'id,user_id,foto_path'),
     fetchTable('usuario_figuritas', 'created_at'),
     fetchTable('intercambios', 'created_at'),
     fetchTable('intercambio_items', 'id'),
@@ -326,6 +354,7 @@ function rebuildDerivedData() {
       id: Number(f.id),
       user_id: Number(f.user_id),
       foto_path: f.foto_path || '',
+      secret_code: f.secret_code || '',
       user,
       name: user?.name || `Usuario ${f.user_id}`,
       role: user?.role || '',
@@ -392,6 +421,7 @@ function hydrateUiState() {
   currentFilter = prefs.currentFilter || 'all';
   currentCountryFilter = prefs.currentCountryFilter || 'all';
   currentUserId = loadAuthSession();
+  codesAccessGranted = loadCodesAccess();
 }
 
 function normalizeCredential(value) {
@@ -428,6 +458,27 @@ function clearAuthSession() {
   }
 }
 
+function loadCodesAccess() {
+  try {
+    return sessionStorage.getItem(CODES_ACCESS_KEY) === '1';
+  } catch {
+    return false;
+  }
+}
+
+function saveCodesAccess(granted) {
+  try {
+    if (granted) sessionStorage.setItem(CODES_ACCESS_KEY, '1');
+    else sessionStorage.removeItem(CODES_ACCESS_KEY);
+  } catch {
+    // ignore
+  }
+}
+
+function clearCodesAccess() {
+  saveCodesAccess(false);
+}
+
 function ensureCurrentUser() {
   if (!currentUserId || !APP.usuariosById.has(currentUserId)) {
     currentUserId = null;
@@ -445,6 +496,7 @@ function updateCurrentUserDisplay() {
     label.disabled = false;
     label.title = 'Inicia sesión';
     if (logoutBtn) logoutBtn.classList.add('hidden');
+    updateCodesButtonState();
     return;
   }
 
@@ -453,6 +505,14 @@ function updateCurrentUserDisplay() {
   label.textContent = user ? user.name : 'Inicia';
   label.title = user ? `Sesión iniciada: ${user.name}` : 'Inicia sesión';
   if (logoutBtn) logoutBtn.classList.remove('hidden');
+  updateCodesButtonState();
+}
+
+function updateCodesButtonState() {
+  const codesBtn = document.getElementById('codes-btn');
+  if (!codesBtn) return;
+  codesBtn.classList.toggle('hidden', !currentUserId);
+  codesBtn.classList.toggle('active', currentUserId && currentView === 'codigos');
 }
 
 function populateMessagePartnerSelect() {
@@ -592,6 +652,99 @@ function bindAuthForm() {
   }
 }
 
+function setCodesAccessError(message) {
+  const el = document.getElementById('codes-access-error');
+  if (el) el.textContent = message || '';
+}
+
+function bindCodesUi() {
+  const codesBtn = document.getElementById('codes-btn');
+  const input = document.getElementById('codes-access-input');
+
+  if (codesBtn && !codesBtn.dataset.bound) {
+    codesBtn.dataset.bound = 'true';
+    codesBtn.addEventListener('click', () => handleCodesButton());
+  }
+
+  if (input && !input.dataset.bound) {
+    input.dataset.bound = 'true';
+    input.addEventListener('keydown', event => {
+      if (event.key === 'Enter') {
+        event.preventDefault();
+        void submitCodesAccess();
+      }
+    });
+  }
+}
+
+function openCodesAccessModal() {
+  if (!currentUserId) {
+    showAuthScreen();
+    return;
+  }
+
+  setCodesAccessError('');
+  const modal = document.getElementById('codes-access-modal');
+  const input = document.getElementById('codes-access-input');
+  if (input) {
+    input.value = '';
+    window.requestAnimationFrame(() => input.focus());
+  }
+  if (modal) modal.classList.add('open');
+}
+
+function closeCodesAccessModal() {
+  setCodesAccessError('');
+  const modal = document.getElementById('codes-access-modal');
+  const input = document.getElementById('codes-access-input');
+  if (input) input.value = '';
+  if (modal) modal.classList.remove('open');
+}
+
+function handleCodesButton() {
+  if (!currentUserId) {
+    showAuthScreen();
+    return;
+  }
+
+  if (codesAccessGranted) {
+    currentView = 'codigos';
+    saveUiPrefs();
+    renderAll();
+    return;
+  }
+
+  openCodesAccessModal();
+}
+
+async function submitCodesAccess() {
+  if (!currentUserId) {
+    showAuthScreen();
+    return;
+  }
+
+  const input = document.getElementById('codes-access-input');
+  const code = normalizeCredential(input?.value);
+
+  if (!code) {
+    setCodesAccessError('Ingresá la clave.');
+    return;
+  }
+
+  if (code !== normalizeCredential(CODES_ACCESS_CODE)) {
+    setCodesAccessError('Clave incorrecta.');
+    return;
+  }
+
+  codesAccessGranted = true;
+  saveCodesAccess(true);
+  closeCodesAccessModal();
+  currentView = 'codigos';
+  saveUiPrefs();
+  secretCodesLoaded = false;
+  renderAll();
+}
+
 function setLoginError(message) {
   const el = document.getElementById('login-error');
   if (el) el.textContent = message || '';
@@ -638,13 +791,20 @@ async function attemptLogin() {
 function logoutCurrentUser() {
   currentUserId = null;
   clearAuthSession();
+  clearCodesAccess();
   setLoginError('');
+  setCodesAccessError('');
   const usernameInput = document.getElementById('login-username');
   const passwordInput = document.getElementById('login-password');
   if (usernameInput) usernameInput.value = '';
   if (passwordInput) passwordInput.value = '';
   currentView = 'mi-album';
+  codesAccessGranted = false;
+  secretCodesRows = [];
+  secretCodesLoaded = false;
   setGuestMode(true);
+  closeCodesAccessModal();
+  saveUiPrefs();
   updateCurrentUserDisplay();
   showAuthScreen();
   updateBadges();
@@ -670,8 +830,13 @@ function renderCurrentView() {
     showAuthScreen();
     return;
   }
+  if (currentView === 'codigos' && !codesAccessGranted) {
+    currentView = 'mi-album';
+    saveUiPrefs();
+  }
   updateVisibleView();
   updateNavActive();
+  updateCodesButtonState();
 
   switch (currentView) {
     case 'mi-album':
@@ -688,6 +853,9 @@ function renderCurrentView() {
       break;
     case 'ranking':
       renderRanking();
+      break;
+    case 'codigos':
+      renderCodesView();
       break;
     default:
       renderMyAlbum();
@@ -716,9 +884,16 @@ function switchView(viewName) {
     showAuthScreen();
     return;
   }
+  if (viewName === 'codigos' && !codesAccessGranted) {
+    openCodesAccessModal();
+    return;
+  }
   currentView = viewName;
   if (viewName === 'mensajes') {
     void markMessagesAsRead(currentUserId).catch(error => console.error(error));
+  }
+  if (viewName === 'codigos') {
+    secretCodesLoaded = false;
   }
   saveUiPrefs();
   renderCurrentView();
@@ -827,7 +1002,7 @@ function stickerHTML(sticker, qty) {
     : `<div class="sticker-avatar" style="background:${bg}; color:rgba(255,255,255,0.9);">${escapeHtml(sticker.initials)}</div>`;
 
   return `
-    <div class="sticker-card ${stateClass}" onclick="toggleOwn(${sticker.id})" title="Click para cambiar estado">
+    <div class="sticker-card ${stateClass}" onclick="toggleOwn(${sticker.id})" title="Click para activar con código secreto">
       <div class="sticker-photo">
         ${imageHTML}
         <div class="sticker-number">#${String(sticker.id).padStart(2, '0')}</div>
@@ -843,36 +1018,122 @@ function stickerHTML(sticker, qty) {
   `;
 }
 
-async function toggleOwn(stickerId) {
+function toggleOwn(stickerId) {
+  openStickerCodeModal(stickerId);
+}
+
+function setStickerCodeError(message) {
+  const el = document.getElementById('sticker-code-error');
+  if (el) el.textContent = message || '';
+}
+
+function openStickerCodeModal(stickerId) {
   if (!currentUserId) {
     showAuthScreen();
     return;
   }
-  const owned = getOwnedMap(currentUserId);
+  pendingStickerId = Number(stickerId);
+  setStickerCodeError('');
+
+  const sticker = getStickerById(stickerId);
+  const modal = document.getElementById('code-modal');
+  const target = document.getElementById('code-modal-target');
+  const input = document.getElementById('sticker-code-input');
+
+  if (target) {
+    const bg = BG_COLORS[(Number(stickerId) - 1) % BG_COLORS.length];
+    target.innerHTML = `
+      <div class="code-target-emoji" style="background:${bg}; color:rgba(255,255,255,0.95);">${escapeHtml(sticker?.flag || '🔒')}</div>
+      <div class="code-target-info">
+        <div class="code-target-name">#${String(stickerId).padStart(2, '0')} ${escapeHtml(sticker?.name || 'Figurita')}</div>
+        <div class="code-target-meta">${escapeHtml(sticker?.role || '')}${sticker?.country ? ` · ${escapeHtml(sticker.country)}` : ''}</div>
+      </div>
+    `;
+  }
+
+  if (input) {
+    input.value = '';
+    window.requestAnimationFrame(() => input.focus());
+  }
+
+  if (modal) modal.classList.add('open');
+}
+
+function closeStickerCodeModal() {
+  pendingStickerId = null;
+  setStickerCodeError('');
+  const modal = document.getElementById('code-modal');
+  const input = document.getElementById('sticker-code-input');
+  if (input) input.value = '';
+  if (modal) modal.classList.remove('open');
+}
+
+function demoActivateStickerWithCode(userId, stickerId, code) {
+  const sticker = getStickerById(stickerId);
+  if (!sticker) {
+    throw new Error('figurita no encontrada');
+  }
+
+  if (normalizeStickerCode(sticker.secret_code) !== normalizeStickerCode(code)) {
+    throw new Error('codigo incorrecto');
+  }
+
+  const owned = getOwnedMap(userId);
   const current = owned[stickerId] || 0;
-  const next = current === 0 ? 1 : current === 1 ? 2 : 0;
+  if (current > 0) return 'already_owned';
+
+  setLocalStickerQty(userId, stickerId, 1);
+  return 'activated';
+}
+
+async function submitStickerCode() {
+  if (!currentUserId) {
+    showAuthScreen();
+    return;
+  }
+
+  if (!pendingStickerId) {
+    closeStickerCodeModal();
+    return;
+  }
+
+  const input = document.getElementById('sticker-code-input');
+  const code = normalizeStickerCode(input?.value);
+  if (!code) {
+    setStickerCodeError('Ingresá el código secreto.');
+    return;
+  }
 
   try {
+    let result = 'activated';
+
     if (supabaseClient) {
-      const { error } = await supabaseClient.rpc('set_usuario_figurita_qty', {
+      const { data, error } = await supabaseClient.rpc('activar_figurita_con_codigo', {
         p_user_id: currentUserId,
-        p_figurita_id: stickerId,
-        p_qty: next,
+        p_figurita_id: pendingStickerId,
+        p_codigo: code,
       });
       if (error) throw error;
+      result = data || 'activated';
       await reloadFromSource();
     } else {
-      setLocalStickerQty(currentUserId, stickerId, next);
+      result = demoActivateStickerWithCode(currentUserId, pendingStickerId, code);
       rebuildDerivedData();
       renderAll();
     }
 
-    const sticker = getStickerById(stickerId);
-    const msgs = ['❌ Marcada como faltante', '✅ ¡Figurita conseguida!', '🔄 Marcada como repetida'];
-    showToast(`${msgs[next]} — ${sticker?.name || ''}`);
+    closeStickerCodeModal();
+    showToast(result === 'already_owned' ? 'ℹ️ Esa figurita ya estaba activa' : '✅ Figurita activada');
   } catch (error) {
     console.error(error);
-    showToast('No se pudo actualizar la figurita');
+    const msg = String(error?.message || '').toLowerCase();
+    if (msg.includes('codigo incorrecto')) {
+      setStickerCodeError('Código incorrecto.');
+    } else if (msg.includes('figurita no encontrada')) {
+      setStickerCodeError('Figurita no encontrada.');
+    } else {
+      setStickerCodeError('No se pudo validar el código.');
+    }
   }
 }
 
@@ -1317,6 +1578,93 @@ function renderRanking() {
   }).join('');
 }
 
+function renderCodesTableRows() {
+  const body = document.getElementById('codes-table-body');
+  if (!body) return;
+
+  if (!codesAccessGranted) {
+    body.innerHTML = '<tr><td colspan="2"><div class="codes-empty">Vista bloqueada.</div></td></tr>';
+    return;
+  }
+
+  if (!secretCodesRows.length) {
+    body.innerHTML = '<tr><td colspan="2"><div class="codes-empty">No hay códigos para mostrar.</div></td></tr>';
+    return;
+  }
+
+  body.innerHTML = secretCodesRows.map(row => `
+    <tr>
+      <td class="codes-name">${escapeHtml(row.nombre || '')}</td>
+      <td class="codes-secret">${escapeHtml(row.secret_code || '')}</td>
+    </tr>
+  `).join('');
+}
+
+async function loadCodesRows() {
+  if (!currentUserId || !codesAccessGranted) return [];
+
+  if (supabaseClient) {
+    const { data, error } = await supabaseClient
+      .from('codigos_sectretos')
+      .select('figurita_id,nombre,secret_code')
+      .order('figurita_id', { ascending: true });
+    if (error) throw error;
+    return data || [];
+  }
+
+  return APP.figuritas.map(figurita => {
+    const user = APP.usuariosById.get(Number(figurita.user_id));
+    return {
+      figurita_id: Number(figurita.id),
+      nombre: user?.name || `Usuario ${figurita.user_id}`,
+      secret_code: figurita.secret_code || '',
+    };
+  }).sort((a, b) => Number(a.figurita_id) - Number(b.figurita_id));
+}
+
+async function refreshCodesRows() {
+  const body = document.getElementById('codes-table-body');
+  if (!body) return;
+
+  if (!codesAccessGranted) {
+    renderCodesTableRows();
+    return;
+  }
+
+  if (secretCodesLoading) return;
+
+  secretCodesLoading = true;
+  body.innerHTML = '<tr><td colspan="2"><div class="codes-empty">Cargando códigos...</div></td></tr>';
+
+  try {
+    secretCodesRows = await loadCodesRows();
+    secretCodesLoaded = true;
+    renderCodesTableRows();
+  } catch (error) {
+    console.error(error);
+    body.innerHTML = '<tr><td colspan="2"><div class="codes-empty">No se pudieron cargar los códigos.</div></td></tr>';
+  } finally {
+    secretCodesLoading = false;
+  }
+}
+
+function renderCodesView() {
+  const body = document.getElementById('codes-table-body');
+  if (!body) return;
+
+  if (!codesAccessGranted) {
+    renderCodesTableRows();
+    return;
+  }
+
+  if (!secretCodesLoaded) {
+    void refreshCodesRows();
+    return;
+  }
+
+  renderCodesTableRows();
+}
+
 async function markMessagesAsRead(userId) {
   if (!userId) return;
   if (supabaseClient) {
@@ -1512,6 +1860,7 @@ async function boot() {
   populateCommentFiguritaSelect();
   bindNavButtons();
   bindAuthForm();
+  bindCodesUi();
   updateNavActive();
   if (currentUserId) {
     showAppShell();

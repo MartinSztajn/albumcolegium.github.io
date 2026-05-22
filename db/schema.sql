@@ -30,6 +30,40 @@ create table if not exists public.figuritas (
 create index if not exists idx_figuritas_user_id
   on public.figuritas (user_id);
 
+create extension if not exists pgcrypto;
+
+create or replace function public.generate_secret_code(
+  p_len integer default 8
+)
+returns text
+language sql
+set search_path = public
+as $$
+  select upper(substr(replace(gen_random_uuid()::text, '-', ''), 1, greatest(4, p_len)));
+$$;
+
+alter table public.figuritas
+  add column if not exists secret_code text;
+
+update public.figuritas
+set secret_code = coalesce(secret_code, public.generate_secret_code())
+where secret_code is null;
+
+alter table public.figuritas
+  alter column secret_code set default public.generate_secret_code(),
+  alter column secret_code set not null;
+
+create unique index if not exists idx_figuritas_secret_code
+  on public.figuritas (secret_code);
+
+create or replace view public.codigos_sectretos as
+select
+  f.id as figurita_id,
+  u.name as nombre,
+  f.secret_code
+from public.figuritas f
+join public.usuarios u on u.id = f.user_id;
+
 create table if not exists public.usuario_figuritas (
   user_id bigint not null references public.usuarios(id) on update cascade on delete cascade,
   figurita_id bigint not null references public.figuritas(id) on update cascade on delete cascade,
@@ -145,6 +179,49 @@ begin
   do update set
     cantidad = excluded.cantidad,
     created_at = now();
+end;
+$$;
+
+create or replace function public.activar_figurita_con_codigo(
+  p_user_id bigint,
+  p_figurita_id bigint,
+  p_codigo text
+)
+returns text
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_secret text;
+  v_qty integer;
+begin
+  select secret_code
+  into v_secret
+  from public.figuritas
+  where id = p_figurita_id;
+
+  if not found then
+    raise exception 'figurita no encontrada';
+  end if;
+
+  if upper(regexp_replace(coalesce(v_secret, ''), '[^A-Za-z0-9]', '', 'g')) <>
+     upper(regexp_replace(coalesce(p_codigo, ''), '[^A-Za-z0-9]', '', 'g')) then
+    raise exception 'codigo incorrecto';
+  end if;
+
+  select cantidad
+  into v_qty
+  from public.usuario_figuritas
+  where user_id = p_user_id
+    and figurita_id = p_figurita_id;
+
+  if coalesce(v_qty, 0) > 0 then
+    return 'already_owned';
+  end if;
+
+  perform public.set_usuario_figurita_qty(p_user_id, p_figurita_id, 1);
+  return 'activated';
 end;
 $$;
 
@@ -341,8 +418,12 @@ end;
 $$;
 
 grant usage on schema public to anon, authenticated;
-grant select on public.paises, public.usuarios, public.figuritas, public.usuario_figuritas, public.intercambios, public.intercambio_items, public.mensajes, public.comentarios to anon, authenticated;
+revoke select on public.figuritas from anon, authenticated;
+grant select (id, user_id, foto_path, created_at) on public.figuritas to anon, authenticated;
+grant select on public.codigos_sectretos to anon, authenticated;
+grant select on public.paises, public.usuarios, public.usuario_figuritas, public.intercambios, public.intercambio_items, public.mensajes, public.comentarios to anon, authenticated;
 grant execute on function public.set_usuario_figurita_qty(bigint, bigint, integer) to anon, authenticated;
+grant execute on function public.activar_figurita_con_codigo(bigint, bigint, text) to anon, authenticated;
 grant execute on function public.crear_intercambio(bigint, bigint, text, bigint[], bigint[]) to anon, authenticated;
 grant execute on function public.responder_intercambio(bigint, text) to anon, authenticated;
 grant execute on function public.crear_mensaje(bigint, bigint, text, bigint) to anon, authenticated;
