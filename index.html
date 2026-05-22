@@ -788,11 +788,11 @@
     </div>
 
     <nav class="header-nav">
-      <button class="nav-btn active" onclick="switchView('mi-album')">Mi Álbum</button>
-      <button class="nav-btn" onclick="switchView('todos')">Todos</button>
-      <button class="nav-btn" onclick="switchView('intercambios')">Intercambios <span id="badge-trades" style="display:none; background:var(--red); color:#fff; border-radius:10px; padding:1px 6px; font-size:10px; margin-left:4px;"></span></button>
-      <button class="nav-btn" onclick="switchView('mensajes')">Mensajes <span id="badge-messages" style="display:none; background:var(--gold); color:var(--navy); border-radius:10px; padding:1px 6px; font-size:10px; margin-left:4px;"></span></button>
-      <button class="nav-btn" onclick="switchView('ranking')">Ranking</button>
+      <button type="button" class="nav-btn active" data-view="mi-album">Mi Álbum</button>
+      <button type="button" class="nav-btn" data-view="todos">Todos</button>
+      <button type="button" class="nav-btn" data-view="intercambios">Intercambios <span id="badge-trades" style="display:none; background:var(--red); color:#fff; border-radius:10px; padding:1px 6px; font-size:10px; margin-left:4px;"></span></button>
+      <button type="button" class="nav-btn" data-view="mensajes">Mensajes <span id="badge-messages" style="display:none; background:var(--gold); color:var(--navy); border-radius:10px; padding:1px 6px; font-size:10px; margin-left:4px;"></span></button>
+      <button type="button" class="nav-btn" data-view="ranking">Ranking</button>
     </nav>
 
     <div class="user-select-wrap">

@@ -501,6 +501,15 @@ function updateNavActive() {
   if (idx >= 0 && btns[idx]) btns[idx].classList.add('active');
 }
 
+function bindNavButtons() {
+  document.querySelectorAll('.nav-btn[data-view]').forEach(btn => {
+    btn.addEventListener('click', event => {
+      event.preventDefault();
+      switchView(btn.dataset.view);
+    });
+  });
+}
+
 function updateVisibleView() {
   document.querySelectorAll('.view').forEach(view => {
     view.classList.toggle('active', view.id === `view-${currentView}`);
@@ -1324,6 +1333,7 @@ async function boot() {
   populateCurrentUserSelect();
   populateMessagePartnerSelect();
   populateCommentFiguritaSelect();
+  bindNavButtons();
   updateNavActive();
   renderAll();
   if (currentView === 'mensajes') {
