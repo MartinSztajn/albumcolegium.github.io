@@ -501,6 +501,12 @@ function updateNavActive() {
   if (idx >= 0 && btns[idx]) btns[idx].classList.add('active');
 }
 
+function updateVisibleView() {
+  document.querySelectorAll('.view').forEach(view => {
+    view.classList.toggle('active', view.id === `view-${currentView}`);
+  });
+}
+
 function persistAndRender() {
   saveUiPrefs();
   populateCurrentUserSelect();
@@ -511,6 +517,7 @@ function persistAndRender() {
 }
 
 function renderCurrentView() {
+  updateVisibleView();
   updateNavActive();
 
   switch (currentView) {
