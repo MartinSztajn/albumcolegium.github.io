@@ -115,30 +115,12 @@
   .nav-btn:hover { background: rgba(255,255,255,0.08); color: var(--white); }
   .nav-btn.active { background: var(--gold); color: var(--navy); }
 
-  .user-select-wrap {
+  .session-wrap {
     display: flex;
     align-items: center;
     gap: 10px;
     flex-shrink: 0;
   }
-  .user-select-wrap label {
-    font-size: 12px;
-    color: rgba(255,255,255,0.5);
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-  }
-  .user-select-wrap select {
-    background: rgba(255,255,255,0.1);
-    border: 1px solid rgba(255,255,255,0.2);
-    color: var(--white);
-    font-family: 'Nunito', sans-serif;
-    font-size: 13px;
-    font-weight: 700;
-    padding: 6px 12px;
-    border-radius: 6px;
-    cursor: pointer;
-  }
-  .user-select-wrap select option { background: var(--navy-mid); color: var(--white); }
   .conn-pill {
     font-size: 11px;
     font-weight: 800;
@@ -151,6 +133,98 @@
     color: rgba(255,255,255,0.68);
     white-space: nowrap;
   }
+  .user-chip {
+    font-size: 12px;
+    font-weight: 800;
+    color: var(--white);
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 999px;
+    padding: 7px 12px;
+    white-space: nowrap;
+  }
+  .btn-logout {
+    padding: 7px 12px;
+  }
+
+  /* ── AUTH ── */
+  .auth-screen {
+    position: fixed;
+    inset: 0;
+    z-index: 500;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    background:
+      radial-gradient(circle at top, rgba(245,200,66,0.12), transparent 36%),
+      linear-gradient(160deg, #07101f, #0a1628 55%, #09101d);
+  }
+  .auth-screen.hidden { display: none; }
+  .auth-card {
+    width: min(440px, 100%);
+    background: rgba(10, 22, 40, 0.88);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 24px;
+    padding: 28px;
+    box-shadow: 0 30px 90px rgba(0,0,0,0.45);
+    backdrop-filter: blur(16px);
+  }
+  .auth-brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 18px;
+  }
+  .auth-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 34px;
+    letter-spacing: 2px;
+    color: var(--gold);
+    line-height: 1;
+  }
+  .auth-subtitle {
+    font-size: 14px;
+    color: rgba(255,255,255,0.65);
+    line-height: 1.45;
+    margin-bottom: 22px;
+  }
+  .auth-field {
+    margin-bottom: 14px;
+  }
+  .auth-field label {
+    display: block;
+    font-size: 11px;
+    font-weight: 800;
+    color: rgba(255,255,255,0.45);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 8px;
+  }
+  .auth-field input {
+    width: 100%;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.12);
+    color: var(--white);
+    font-family: 'Nunito', sans-serif;
+    font-size: 15px;
+    padding: 12px 14px;
+    border-radius: 10px;
+  }
+  .auth-hint {
+    font-size: 12px;
+    color: rgba(255,255,255,0.42);
+    margin-top: 8px;
+    line-height: 1.45;
+  }
+  .auth-error {
+    min-height: 18px;
+    margin-top: 8px;
+    font-size: 13px;
+    color: #ff8d8d;
+    font-weight: 700;
+  }
+  .app-shell.hidden { display: none; }
 
   /* ── MAIN ── */
   main {
@@ -769,13 +843,41 @@
     .social-layout { grid-template-columns: 1fr; }
     .stats-bar { grid-template-columns: 1fr 1fr; }
     .header-nav .nav-btn { padding: 8px 10px; font-size: 11px; }
-    .user-select-wrap label { display: none; }
     main { padding: 16px; }
   }
 </style>
 </head>
 <body>
 
+<!-- AUTH -->
+<div class="auth-screen" id="auth-screen">
+  <div class="auth-card">
+    <div class="auth-brand">
+      <div class="logo-icon">⚽</div>
+      <div>
+        <div class="logo-title">Figuritas Colegium</div>
+        <div class="logo-sub">Ingreso privado</div>
+      </div>
+    </div>
+    <div class="auth-title">Mini Login</div>
+    <div class="auth-subtitle">Ingresá con tu usuario y contraseña. En esta versión ambos valores son iguales. No existe selector de usuarios.</div>
+    <form id="login-form">
+      <div class="auth-field">
+        <label for="login-username">Usuario</label>
+        <input id="login-username" type="text" autocomplete="username" placeholder="Tu usuario">
+      </div>
+      <div class="auth-field">
+        <label for="login-password">Contraseña</label>
+        <input id="login-password" type="password" autocomplete="current-password" placeholder="La misma que tu usuario">
+      </div>
+      <button class="btn btn-propose btn-full" type="submit">Entrar</button>
+      <div class="auth-hint">Si estás probando la app, usá el mismo valor para usuario y contraseña.</div>
+      <div class="auth-error" id="login-error"></div>
+    </form>
+  </div>
+</div>
+
+<div id="app-shell" class="app-shell hidden">
 <!-- HEADER -->
 <header class="header">
   <div class="header-inner">
@@ -795,11 +897,10 @@
       <button type="button" class="nav-btn" data-view="ranking">Ranking</button>
     </nav>
 
-    <div class="user-select-wrap">
+    <div class="session-wrap">
       <div class="conn-pill" id="db-status">Cargando...</div>
-      <label>Soy:</label>
-      <select id="current-user" onchange="onUserChange()">
-      </select>
+      <div class="user-chip" id="current-user-label">Sin sesión</div>
+      <button type="button" class="btn btn-secondary btn-logout" id="logout-btn">Salir</button>
     </div>
   </div>
 </header>
@@ -928,8 +1029,9 @@
 
 <!-- TOAST -->
 <div class="toast" id="toast"></div>
+</div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="app.js"></script>
+<script src="app.js?v=20260522"></script>
 </body>
 </html>

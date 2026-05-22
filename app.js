@@ -27,6 +27,7 @@ const BG_COLORS = [
 ];
 
 const UI_PREFS_KEY = 'colegium_album_ui_v1';
+const AUTH_SESSION_KEY = 'colegium_album_auth_v1';
 
 const TEAM_SEED = [
   { id: 1, name: 'Ariel G.', role: 'CEO', country: 'Chile' },
@@ -96,7 +97,6 @@ function loadUiPrefs() {
 function saveUiPrefs() {
   try {
     localStorage.setItem(UI_PREFS_KEY, JSON.stringify({
-      currentUserId,
       currentView,
       currentFilter,
       currentCountryFilter,
@@ -388,53 +388,78 @@ function rebuildDerivedData() {
 
 function hydrateUiState() {
   const prefs = loadUiPrefs();
-  currentUserId = prefs.currentUserId ? Number(prefs.currentUserId) : null;
   currentView = prefs.currentView || 'mi-album';
   currentFilter = prefs.currentFilter || 'all';
   currentCountryFilter = prefs.currentCountryFilter || 'all';
+  currentUserId = loadAuthSession();
+}
+
+function normalizeCredential(value) {
+  return String(value || '')
+    .trim()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]/g, '');
+}
+
+function loadAuthSession() {
+  try {
+    const raw = sessionStorage.getItem(AUTH_SESSION_KEY);
+    return raw ? Number(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
+function saveAuthSession(userId) {
+  try {
+    sessionStorage.setItem(AUTH_SESSION_KEY, String(userId));
+  } catch {
+    // ignore
+  }
+}
+
+function clearAuthSession() {
+  try {
+    sessionStorage.removeItem(AUTH_SESSION_KEY);
+  } catch {
+    // ignore
+  }
 }
 
 function ensureCurrentUser() {
-  if (!APP.usuarios.length) {
-    currentUserId = null;
-    return;
-  }
   if (!currentUserId || !APP.usuariosById.has(currentUserId)) {
-    currentUserId = APP.usuarios[0].id;
+    currentUserId = null;
+    clearAuthSession();
   }
 }
 
-function populateCurrentUserSelect() {
-  const sel = document.getElementById('current-user');
-  if (!sel) return;
+function updateCurrentUserDisplay() {
+  const label = document.getElementById('current-user-label');
+  if (!label) return;
 
-  const previous = currentUserId;
-  sel.innerHTML = '';
-
-  APP.usuarios.forEach(user => {
-    const option = document.createElement('option');
-    option.value = String(user.id);
-    const enriched = APP.usuariosById.get(Number(user.id));
-    option.textContent = `${enriched?.flag || '🏳️'} ${user.name}`;
-    sel.appendChild(option);
-  });
-
-  if (previous && APP.usuariosById.has(previous)) {
-    currentUserId = previous;
-  } else if (APP.usuarios[0]) {
-    currentUserId = APP.usuarios[0].id;
-  } else {
-    currentUserId = null;
+  if (!currentUserId) {
+    label.textContent = 'Sin sesión';
+    return;
   }
 
-  sel.value = currentUserId ? String(currentUserId) : '';
+  const user = APP.usuariosById.get(Number(currentUserId));
+  label.textContent = user ? `${user.flag} ${user.name}` : 'Sin sesión';
 }
 
 function populateMessagePartnerSelect() {
   const select = document.getElementById('message-partner');
   if (!select) return;
 
+  if (!currentUserId) {
+    select.innerHTML = '<option value="">Inicia sesión primero</option>';
+    select.disabled = true;
+    return;
+  }
+
   const prev = select.value;
+  select.disabled = false;
   select.innerHTML = '<option value="">Selecciona una persona...</option>';
 
   APP.usuarios
@@ -510,6 +535,98 @@ function bindNavButtons() {
   });
 }
 
+function showAuthScreen() {
+  const auth = document.getElementById('auth-screen');
+  const shell = document.getElementById('app-shell');
+  if (auth) auth.classList.remove('hidden');
+  if (shell) shell.classList.add('hidden');
+  const usernameInput = document.getElementById('login-username');
+  if (usernameInput) {
+    window.requestAnimationFrame(() => usernameInput.focus());
+  }
+}
+
+function showAppShell() {
+  const auth = document.getElementById('auth-screen');
+  const shell = document.getElementById('app-shell');
+  if (auth) auth.classList.add('hidden');
+  if (shell) shell.classList.remove('hidden');
+}
+
+function bindAuthForm() {
+  const form = document.getElementById('login-form');
+  const logoutBtn = document.getElementById('logout-btn');
+
+  if (form && !form.dataset.bound) {
+    form.dataset.bound = 'true';
+    form.addEventListener('submit', event => {
+      event.preventDefault();
+      void attemptLogin();
+    });
+  }
+
+  if (logoutBtn && !logoutBtn.dataset.bound) {
+    logoutBtn.dataset.bound = 'true';
+    logoutBtn.addEventListener('click', () => logoutCurrentUser());
+  }
+}
+
+function setLoginError(message) {
+  const el = document.getElementById('login-error');
+  if (el) el.textContent = message || '';
+}
+
+async function attemptLogin() {
+  const usernameInput = document.getElementById('login-username');
+  const passwordInput = document.getElementById('login-password');
+  const username = normalizeCredential(usernameInput?.value);
+  const password = normalizeCredential(passwordInput?.value);
+
+  setLoginError('');
+
+  if (!username || !password) {
+    setLoginError('Completá usuario y contraseña.');
+    return;
+  }
+
+  if (username !== password) {
+    setLoginError('Usuario y contraseña deben ser iguales.');
+    return;
+  }
+
+  const user = APP.usuarios.find(candidate => normalizeCredential(candidate.login_name || candidate.name) === username);
+  if (!user) {
+    setLoginError('Usuario inválido.');
+    return;
+  }
+
+  currentUserId = Number(user.id);
+  saveAuthSession(currentUserId);
+  currentView = 'mi-album';
+  currentFilter = 'all';
+  currentCountryFilter = 'all';
+  saveUiPrefs();
+  setLoginError('');
+  if (usernameInput) usernameInput.value = '';
+  if (passwordInput) passwordInput.value = '';
+  updateCurrentUserDisplay();
+  showAppShell();
+  renderAll();
+}
+
+function logoutCurrentUser() {
+  currentUserId = null;
+  clearAuthSession();
+  setLoginError('');
+  const usernameInput = document.getElementById('login-username');
+  const passwordInput = document.getElementById('login-password');
+  if (usernameInput) usernameInput.value = '';
+  if (passwordInput) passwordInput.value = '';
+  updateCurrentUserDisplay();
+  showAuthScreen();
+  updateBadges();
+}
+
 function updateVisibleView() {
   document.querySelectorAll('.view').forEach(view => {
     view.classList.toggle('active', view.id === `view-${currentView}`);
@@ -518,7 +635,7 @@ function updateVisibleView() {
 
 function persistAndRender() {
   saveUiPrefs();
-  populateCurrentUserSelect();
+  updateCurrentUserDisplay();
   populateMessagePartnerSelect();
   populateCommentFiguritaSelect();
   renderCurrentView();
@@ -526,6 +643,10 @@ function persistAndRender() {
 }
 
 function renderCurrentView() {
+  if (!currentUserId) {
+    showAuthScreen();
+    return;
+  }
   updateVisibleView();
   updateNavActive();
 
@@ -552,21 +673,24 @@ function renderCurrentView() {
 }
 
 function renderAll() {
-  populateCurrentUserSelect();
+  if (!currentUserId) {
+    updateCurrentUserDisplay();
+    showAuthScreen();
+    return;
+  }
+  updateCurrentUserDisplay();
   populateMessagePartnerSelect();
   populateCommentFiguritaSelect();
+  showAppShell();
   renderCurrentView();
   updateBadges();
 }
 
-function onUserChange() {
-  const value = Number(document.getElementById('current-user').value);
-  currentUserId = value;
-  saveUiPrefs();
-  renderAll();
-}
-
 function switchView(viewName) {
+  if (!currentUserId) {
+    showAuthScreen();
+    return;
+  }
   currentView = viewName;
   if (viewName === 'mensajes') {
     void markMessagesAsRead(currentUserId).catch(error => console.error(error));
@@ -695,6 +819,10 @@ function stickerHTML(sticker, qty) {
 }
 
 async function toggleOwn(stickerId) {
+  if (!currentUserId) {
+    showAuthScreen();
+    return;
+  }
   const owned = getOwnedMap(currentUserId);
   const current = owned[stickerId] || 0;
   const next = current === 0 ? 1 : current === 1 ? 2 : 0;
@@ -841,6 +969,10 @@ function miniStickerHTML(sticker) {
 }
 
 async function respondTrade(tradeId, response) {
+  if (!currentUserId) {
+    showAuthScreen();
+    return;
+  }
   try {
     if (supabaseClient) {
       const { error } = await supabaseClient.rpc('responder_intercambio', {
@@ -867,6 +999,10 @@ async function respondTrade(tradeId, response) {
 }
 
 function openModal() {
+  if (!currentUserId) {
+    showAuthScreen();
+    return;
+  }
   selectedOffer = new Set();
   selectedRequest = new Set();
 
@@ -933,6 +1069,10 @@ function togglePick(id, type) {
 }
 
 async function submitTrade() {
+  if (!currentUserId) {
+    showAuthScreen();
+    return;
+  }
   const partnerId = Number(document.getElementById('trade-partner').value || 0);
   if (!partnerId) return showToast('⚠️ Selecciona un compañero');
   if (selectedOffer.size === 0) return showToast('⚠️ Selecciona qué figuritas ofreces');
@@ -970,6 +1110,10 @@ function closeModal() {
 }
 
 function renderMessages() {
+  if (!currentUserId) {
+    showAuthScreen();
+    return;
+  }
   populateMessagePartnerSelect();
   populateCommentFiguritaSelect();
 
@@ -1035,6 +1179,10 @@ function commentCardHTML(comment) {
 }
 
 async function sendMessage() {
+  if (!currentUserId) {
+    showAuthScreen();
+    return;
+  }
   const partnerId = Number(document.getElementById('message-partner').value || 0);
   const bodyEl = document.getElementById('message-body');
   const body = bodyEl.value.trim();
@@ -1066,6 +1214,10 @@ async function sendMessage() {
 }
 
 async function addComment() {
+  if (!currentUserId) {
+    showAuthScreen();
+    return;
+  }
   const figuritaId = Number(document.getElementById('comment-figurita').value || 0);
   const bodyEl = document.getElementById('comment-body');
   const body = bodyEl.value.trim();
@@ -1287,7 +1439,7 @@ async function reloadFromSource(keepView = true) {
   }
   rebuildDerivedData();
   ensureCurrentUser();
-  populateCurrentUserSelect();
+  updateCurrentUserDisplay();
   populateMessagePartnerSelect();
   populateCommentFiguritaSelect();
   if (keepView) renderAll();
@@ -1330,14 +1482,20 @@ async function boot() {
 
   rebuildDerivedData();
   ensureCurrentUser();
-  populateCurrentUserSelect();
+  updateCurrentUserDisplay();
   populateMessagePartnerSelect();
   populateCommentFiguritaSelect();
   bindNavButtons();
+  bindAuthForm();
   updateNavActive();
-  renderAll();
-  if (currentView === 'mensajes') {
-    void markMessagesAsRead(currentUserId).catch(error => console.error(error));
+  if (currentUserId) {
+    showAppShell();
+    renderAll();
+    if (currentView === 'mensajes') {
+      void markMessagesAsRead(currentUserId).catch(error => console.error(error));
+    }
+  } else {
+    showAuthScreen();
   }
 }
 
