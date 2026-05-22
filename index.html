@@ -1,0 +1,1352 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Figuritas Colegium Mundial 2026</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --gold: #F5C842;
+    --gold-dark: #C49A1A;
+    --navy: #0A1628;
+    --navy-mid: #142040;
+    --navy-light: #1E3060;
+    --white: #FAFAF8;
+    --gray: #8A8F9E;
+    --green: #2ECC71;
+    --red: #E74C3C;
+    --orange: #F39C12;
+    --card-bg: #FFFFFF;
+    --surface: #F0F2F8;
+    --text: #0A1628;
+    --text-muted: #5A6070;
+    --border: rgba(10,22,40,0.1);
+    --shadow: 0 4px 20px rgba(10,22,40,0.12);
+    --shadow-card: 0 8px 32px rgba(10,22,40,0.18);
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; }
+
+  body {
+    font-family: 'Nunito', sans-serif;
+    background: var(--navy);
+    color: var(--white);
+    min-height: 100vh;
+    background-image:
+      repeating-linear-gradient(0deg, transparent, transparent 40px, rgba(255,255,255,0.015) 40px, rgba(255,255,255,0.015) 41px),
+      repeating-linear-gradient(90deg, transparent, transparent 40px, rgba(255,255,255,0.015) 40px, rgba(255,255,255,0.015) 41px);
+  }
+
+  /* ── HEADER ── */
+  .header {
+    background: linear-gradient(135deg, var(--navy-mid), var(--navy-light));
+    border-bottom: 3px solid var(--gold);
+    padding: 0 24px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.4);
+  }
+  .header-inner {
+    max-width: 1200px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 64px;
+    gap: 16px;
+  }
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-shrink: 0;
+  }
+  .logo-icon {
+    width: 42px;
+    height: 42px;
+    background: var(--gold);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 22px;
+    color: var(--navy);
+    letter-spacing: 1px;
+  }
+  .logo-text {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.1;
+  }
+  .logo-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 20px;
+    color: var(--gold);
+    letter-spacing: 2px;
+  }
+  .logo-sub {
+    font-size: 10px;
+    color: rgba(255,255,255,0.5);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+
+  .header-nav {
+    display: flex;
+    gap: 4px;
+  }
+  .nav-btn {
+    background: none;
+    border: none;
+    color: rgba(255,255,255,0.6);
+    font-family: 'Nunito', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    padding: 8px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+  }
+  .nav-btn:hover { background: rgba(255,255,255,0.08); color: var(--white); }
+  .nav-btn.active { background: var(--gold); color: var(--navy); }
+
+  .user-select-wrap {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-shrink: 0;
+  }
+  .user-select-wrap label {
+    font-size: 12px;
+    color: rgba(255,255,255,0.5);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .user-select-wrap select {
+    background: rgba(255,255,255,0.1);
+    border: 1px solid rgba(255,255,255,0.2);
+    color: var(--white);
+    font-family: 'Nunito', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    padding: 6px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+  }
+  .user-select-wrap select option { background: var(--navy-mid); color: var(--white); }
+
+  /* ── MAIN ── */
+  main {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 28px 24px;
+  }
+
+  .view { display: none; }
+  .view.active { display: block; }
+
+  /* ── STATS BAR ── */
+  .stats-bar {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin-bottom: 28px;
+  }
+  .stat-card {
+    background: var(--navy-mid);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 12px;
+    padding: 16px 20px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  .stat-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    flex-shrink: 0;
+  }
+  .stat-icon.gold { background: rgba(245,200,66,0.15); }
+  .stat-icon.green { background: rgba(46,204,113,0.15); }
+  .stat-icon.red { background: rgba(231,76,60,0.15); }
+  .stat-icon.blue { background: rgba(52,152,219,0.15); }
+  .stat-info {}
+  .stat-val {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 28px;
+    color: var(--gold);
+    line-height: 1;
+  }
+  .stat-label {
+    font-size: 11px;
+    color: rgba(255,255,255,0.5);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-top: 2px;
+  }
+
+  /* ── SECTION HEADER ── */
+  .section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+    gap: 16px;
+  }
+  .section-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 28px;
+    letter-spacing: 2px;
+    color: var(--gold);
+  }
+  .filter-group {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .filter-btn {
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.12);
+    color: rgba(255,255,255,0.6);
+    font-family: 'Nunito', sans-serif;
+    font-size: 12px;
+    font-weight: 700;
+    padding: 6px 14px;
+    border-radius: 20px;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .filter-btn:hover { border-color: var(--gold); color: var(--gold); }
+  .filter-btn.active { background: var(--gold); border-color: var(--gold); color: var(--navy); }
+
+  /* ── STICKER GRID ── */
+  .sticker-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 16px;
+  }
+
+  /* ── STICKER CARD ── */
+  .sticker-card {
+    background: var(--navy-mid);
+    border-radius: 12px;
+    overflow: hidden;
+    border: 2px solid transparent;
+    transition: all 0.25s;
+    cursor: pointer;
+    position: relative;
+  }
+  .sticker-card:hover { transform: translateY(-4px); box-shadow: 0 12px 36px rgba(0,0,0,0.4); }
+  .sticker-card.owned { border-color: var(--gold); }
+  .sticker-card.missing { opacity: 0.45; filter: grayscale(0.5); }
+  .sticker-card.duplicate { border-color: var(--green); }
+  .sticker-card.selected { border-color: #3498DB; box-shadow: 0 0 0 3px rgba(52,152,219,0.3); }
+
+  .sticker-photo {
+    width: 100%;
+    aspect-ratio: 3/4;
+    position: relative;
+    overflow: hidden;
+  }
+  .sticker-avatar {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 52px;
+    font-weight: 900;
+    font-family: 'Bebas Neue', sans-serif;
+    letter-spacing: 2px;
+    position: relative;
+  }
+  .sticker-number {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    background: rgba(0,0,0,0.7);
+    color: var(--gold);
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 16px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    letter-spacing: 1px;
+  }
+  .sticker-badge {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    background: var(--green);
+    color: #fff;
+    font-size: 10px;
+    font-weight: 800;
+    padding: 3px 7px;
+    border-radius: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .sticker-badge.dup { background: var(--orange); }
+  .sticker-badge.missing-badge { background: rgba(0,0,0,0.5); color: rgba(255,255,255,0.4); }
+
+  .sticker-info {
+    padding: 10px 10px 12px;
+    background: var(--navy-mid);
+  }
+  .sticker-flag {
+    font-size: 20px;
+    margin-bottom: 4px;
+  }
+  .sticker-name {
+    font-size: 12px;
+    font-weight: 800;
+    color: var(--white);
+    line-height: 1.2;
+    margin-bottom: 2px;
+  }
+  .sticker-role {
+    font-size: 10px;
+    color: rgba(255,255,255,0.45);
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+  }
+  .sticker-country {
+    font-size: 10px;
+    color: var(--gold);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-top: 4px;
+  }
+
+  /* ── ALBUM PROGRESS ── */
+  .album-progress {
+    background: var(--navy-mid);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 12px;
+    padding: 20px 24px;
+    margin-bottom: 24px;
+  }
+  .progress-label {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 8px;
+    font-size: 13px;
+    font-weight: 700;
+  }
+  .progress-label span:first-child { color: rgba(255,255,255,0.7); }
+  .progress-label span:last-child { color: var(--gold); }
+  .progress-bar {
+    height: 10px;
+    background: rgba(255,255,255,0.08);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--gold-dark), var(--gold));
+    border-radius: 10px;
+    transition: width 0.5s ease;
+  }
+
+  /* ── TRADES VIEW ── */
+  .trades-layout {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+  }
+
+  .trade-panel {
+    background: var(--navy-mid);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 16px;
+    padding: 20px;
+  }
+  .trade-panel-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 22px;
+    color: var(--gold);
+    letter-spacing: 1.5px;
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+  }
+
+  .trade-request {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 10px;
+    padding: 14px;
+    margin-bottom: 12px;
+    transition: all 0.2s;
+  }
+  .trade-request:hover { border-color: rgba(245,200,66,0.3); }
+
+  .trade-parties {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 12px;
+  }
+  .trade-user {
+    font-size: 13px;
+    font-weight: 800;
+    color: var(--white);
+  }
+  .trade-arrow {
+    color: var(--gold);
+    font-size: 18px;
+    flex: 0;
+  }
+  .trade-stickers {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 12px;
+  }
+  .mini-sticker {
+    background: rgba(255,255,255,0.08);
+    border-radius: 6px;
+    padding: 4px 10px;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--white);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .mini-sticker .num { color: var(--gold); font-family: 'Bebas Neue', sans-serif; font-size: 14px; }
+
+  .trade-actions {
+    display: flex;
+    gap: 8px;
+  }
+  .btn {
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-family: 'Nunito', sans-serif;
+    font-size: 12px;
+    font-weight: 800;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .btn:hover { transform: translateY(-1px); }
+  .btn-accept { background: var(--green); color: #fff; }
+  .btn-reject { background: rgba(231,76,60,0.2); color: var(--red); border: 1px solid rgba(231,76,60,0.3); }
+  .btn-propose { background: var(--gold); color: var(--navy); }
+  .btn-secondary { background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.7); border: 1px solid rgba(255,255,255,0.12); }
+  .btn-full { width: 100%; text-align: center; padding: 12px; font-size: 14px; margin-top: 8px; }
+
+  .trade-status {
+    display: inline-block;
+    font-size: 10px;
+    font-weight: 800;
+    padding: 3px 8px;
+    border-radius: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-left: 8px;
+  }
+  .status-pending { background: rgba(243,156,18,0.2); color: var(--orange); }
+  .status-accepted { background: rgba(46,204,113,0.2); color: var(--green); }
+  .status-rejected { background: rgba(231,76,60,0.2); color: var(--red); }
+
+  /* ── PROPOSE TRADE MODAL ── */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.75);
+    z-index: 200;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(4px);
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: var(--navy-mid);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 20px;
+    padding: 28px;
+    width: 560px;
+    max-width: 90vw;
+    max-height: 85vh;
+    overflow-y: auto;
+    box-shadow: 0 24px 80px rgba(0,0,0,0.5);
+  }
+  .modal h2 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 28px;
+    color: var(--gold);
+    letter-spacing: 2px;
+    margin-bottom: 20px;
+  }
+  .modal-section { margin-bottom: 20px; }
+  .modal-label {
+    font-size: 11px;
+    font-weight: 800;
+    color: rgba(255,255,255,0.4);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 10px;
+  }
+  .modal select, .modal input {
+    width: 100%;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.12);
+    color: var(--white);
+    font-family: 'Nunito', sans-serif;
+    font-size: 14px;
+    padding: 10px 14px;
+    border-radius: 8px;
+    margin-bottom: 10px;
+  }
+  .modal select option { background: var(--navy-mid); }
+
+  .pick-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(70px, 1fr));
+    gap: 8px;
+    max-height: 200px;
+    overflow-y: auto;
+    padding: 4px;
+  }
+  .pick-item {
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 8px;
+    padding: 8px 6px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.15s;
+    font-size: 11px;
+  }
+  .pick-item:hover { border-color: var(--gold); }
+  .pick-item.selected-pick { border-color: var(--gold); background: rgba(245,200,66,0.12); }
+  .pick-item .pick-flag { font-size: 16px; margin-bottom: 3px; }
+  .pick-item .pick-num { color: var(--gold); font-family: 'Bebas Neue', sans-serif; font-size: 14px; }
+  .pick-item .pick-name { color: rgba(255,255,255,0.7); font-size: 10px; font-weight: 700; line-height: 1.2; }
+
+  .modal-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 20px;
+    padding-top: 16px;
+    border-top: 1px solid rgba(255,255,255,0.08);
+  }
+  .modal-close {
+    position: absolute;
+    right: 20px;
+    top: 20px;
+    background: none;
+    border: none;
+    color: rgba(255,255,255,0.4);
+    font-size: 24px;
+    cursor: pointer;
+    line-height: 1;
+  }
+
+  /* ── RANKING VIEW ── */
+  .ranking-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .rank-row {
+    background: var(--navy-mid);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 12px;
+    padding: 14px 20px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    transition: all 0.2s;
+  }
+  .rank-row:hover { border-color: rgba(245,200,66,0.3); }
+  .rank-num {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 28px;
+    color: rgba(255,255,255,0.15);
+    min-width: 40px;
+    text-align: center;
+  }
+  .rank-num.top-1 { color: var(--gold); }
+  .rank-num.top-2 { color: #C0C0C0; }
+  .rank-num.top-3 { color: #CD7F32; }
+  .rank-avatar {
+    width: 44px;
+    height: 44px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    font-weight: 900;
+    flex-shrink: 0;
+    font-family: 'Bebas Neue', sans-serif;
+  }
+  .rank-info { flex: 1; }
+  .rank-name { font-size: 15px; font-weight: 800; color: var(--white); }
+  .rank-meta { font-size: 12px; color: rgba(255,255,255,0.45); margin-top: 2px; }
+  .rank-bar-wrap { flex: 1; }
+  .rank-bar {
+    height: 6px;
+    background: rgba(255,255,255,0.06);
+    border-radius: 6px;
+    overflow: hidden;
+    margin-bottom: 4px;
+  }
+  .rank-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--gold-dark), var(--gold));
+    border-radius: 6px;
+    transition: width 0.6s ease;
+  }
+  .rank-pct { font-size: 11px; color: rgba(255,255,255,0.45); }
+  .rank-count {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 22px;
+    color: var(--gold);
+    min-width: 50px;
+    text-align: right;
+  }
+
+  /* ── COUNTRY SECTIONS ── */
+  .country-section { margin-bottom: 32px; }
+  .country-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 14px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+  }
+  .country-flag-big { font-size: 32px; }
+  .country-name {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 24px;
+    letter-spacing: 2px;
+    color: var(--white);
+  }
+  .country-count {
+    font-size: 13px;
+    color: rgba(255,255,255,0.4);
+    margin-left: auto;
+  }
+
+  /* ── TOAST ── */
+  .toast {
+    position: fixed;
+    bottom: 28px;
+    left: 50%;
+    transform: translateX(-50%) translateY(80px);
+    background: var(--navy-light);
+    border: 1px solid var(--gold);
+    color: var(--white);
+    padding: 12px 24px;
+    border-radius: 40px;
+    font-size: 14px;
+    font-weight: 700;
+    z-index: 300;
+    transition: transform 0.3s ease;
+    pointer-events: none;
+    white-space: nowrap;
+  }
+  .toast.show { transform: translateX(-50%) translateY(0); }
+
+  /* ── EMPTY ── */
+  .empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: rgba(255,255,255,0.3);
+  }
+  .empty-state .big { font-size: 64px; margin-bottom: 12px; }
+  .empty-state p { font-size: 14px; }
+
+  @media (max-width: 768px) {
+    .trades-layout { grid-template-columns: 1fr; }
+    .stats-bar { grid-template-columns: 1fr 1fr; }
+    .header-nav .nav-btn { padding: 8px 10px; font-size: 11px; }
+    .user-select-wrap label { display: none; }
+    main { padding: 16px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header class="header">
+  <div class="header-inner">
+    <div class="logo">
+      <div class="logo-icon">⚽</div>
+      <div class="logo-text">
+        <div class="logo-title">Figuritas Colegium</div>
+        <div class="logo-sub">Mundial 2026</div>
+      </div>
+    </div>
+
+    <nav class="header-nav">
+      <button class="nav-btn active" onclick="switchView('mi-album')">Mi Álbum</button>
+      <button class="nav-btn" onclick="switchView('todos')">Todos</button>
+      <button class="nav-btn" onclick="switchView('intercambios')">Intercambios <span id="badge-trades" style="display:none; background:var(--red); color:#fff; border-radius:10px; padding:1px 6px; font-size:10px; margin-left:4px;"></span></button>
+      <button class="nav-btn" onclick="switchView('ranking')">Ranking</button>
+    </nav>
+
+    <div class="user-select-wrap">
+      <label>Soy:</label>
+      <select id="current-user" onchange="onUserChange()">
+      </select>
+    </div>
+  </div>
+</header>
+
+<!-- MAIN -->
+<main>
+
+  <!-- MI ÁLBUM -->
+  <div class="view active" id="view-mi-album">
+    <div class="stats-bar" id="stats-bar"></div>
+    <div class="album-progress">
+      <div class="progress-label">
+        <span>Progreso del álbum</span>
+        <span id="progress-text">0 / 0</span>
+      </div>
+      <div class="progress-bar">
+        <div class="progress-fill" id="progress-fill" style="width:0%"></div>
+      </div>
+    </div>
+    <div class="section-header">
+      <div class="section-title">Mi Colección</div>
+      <div class="filter-group">
+        <button class="filter-btn active" onclick="setFilter('all', this)">Todas</button>
+        <button class="filter-btn" onclick="setFilter('owned', this)">Tengo</button>
+        <button class="filter-btn" onclick="setFilter('duplicate', this)">Repetidas</button>
+        <button class="filter-btn" onclick="setFilter('missing', this)">Me faltan</button>
+      </div>
+    </div>
+    <div class="sticker-grid" id="my-sticker-grid"></div>
+  </div>
+
+  <!-- TODOS -->
+  <div class="view" id="view-todos">
+    <div class="section-header">
+      <div class="section-title">Álbum Completo</div>
+      <div class="filter-group" id="country-filter-btns"></div>
+    </div>
+    <div id="album-by-country"></div>
+  </div>
+
+  <!-- INTERCAMBIOS -->
+  <div class="view" id="view-intercambios">
+    <div class="trades-layout">
+      <div class="trade-panel">
+        <div class="trade-panel-title">📥 Solicitudes Recibidas</div>
+        <div id="incoming-trades"></div>
+      </div>
+      <div class="trade-panel">
+        <div class="trade-panel-title">📤 Mis Propuestas</div>
+        <div id="outgoing-trades"></div>
+        <button class="btn btn-propose btn-full" onclick="openModal()">+ Proponer Intercambio</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- RANKING -->
+  <div class="view" id="view-ranking">
+    <div class="section-header">
+      <div class="section-title">🏆 Ranking del Álbum</div>
+    </div>
+    <div class="ranking-list" id="ranking-list"></div>
+  </div>
+
+</main>
+
+<!-- MODAL PROPONER INTERCAMBIO -->
+<div class="modal-overlay" id="trade-modal">
+  <div class="modal" style="position:relative;">
+    <button class="modal-close" onclick="closeModal()">✕</button>
+    <h2>Proponer Intercambio</h2>
+
+    <div class="modal-section">
+      <div class="modal-label">¿Con quién quieres cambiar?</div>
+      <select id="trade-partner">
+        <option value="">Selecciona una persona...</option>
+      </select>
+    </div>
+
+    <div class="modal-section">
+      <div class="modal-label">Ofreces (tus repetidas)</div>
+      <div class="pick-grid" id="offer-grid"></div>
+    </div>
+
+    <div class="modal-section">
+      <div class="modal-label">Pides (las que te faltan que ellos tienen de más)</div>
+      <div class="pick-grid" id="request-grid"></div>
+    </div>
+
+    <div class="modal-section">
+      <div class="modal-label">Mensaje (opcional)</div>
+      <input type="text" id="trade-msg" placeholder="ej: Te propongo este cambio, avísame!" style="width:100%; padding:10px 14px; border-radius:8px; border:1px solid rgba(255,255,255,0.12); background:rgba(255,255,255,0.06); color:#fff; font-family:'Nunito',sans-serif; font-size:14px;">
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn btn-propose" style="flex:1; padding:12px;" onclick="submitTrade()">Enviar Propuesta</button>
+      <button class="btn btn-secondary" style="padding:12px 20px;" onclick="closeModal()">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ═══════════════════════════════
+// DATA
+// ═══════════════════════════════
+
+const TEAM = [
+  { id:1, name:"Ariel G.", role:"CEO", country:"Chile", flag:"🇨🇱", color:"#C8102E", initials:"AG" },
+  { id:2, name:"Valentina R.", role:"Producto", country:"Chile", flag:"🇨🇱", color:"#002D62", initials:"VR" },
+  { id:3, name:"Diego M.", role:"Desarrollo", country:"Argentina", flag:"🇦🇷", color:"#74ACDF", initials:"DM" },
+  { id:4, name:"Camila F.", role:"CS", country:"Colombia", flag:"🇨🇴", color:"#FCD116", initials:"CF" },
+  { id:5, name:"Matías L.", role:"Desarrollo", country:"Chile", flag:"🇨🇱", color:"#003087", initials:"ML" },
+  { id:6, name:"Sofía P.", role:"Diseño", country:"México", flag:"🇲🇽", color:"#006847", initials:"SP" },
+  { id:7, name:"Andrés C.", role:"Ventas", country:"Colombia", flag:"🇨🇴", color:"#003087", initials:"AC" },
+  { id:8, name:"Isabella T.", role:"CS", country:"Argentina", flag:"🇦🇷", color:"#75AADB", initials:"IT" },
+  { id:9, name:"Lucas H.", role:"Desarrollo", country:"Chile", flag:"🇨🇱", color:"#C8102E", initials:"LH" },
+  { id:10, name:"Martina V.", role:"Marketing", country:"México", flag:"🇲🇽", color:"#CE1126", initials:"MV" },
+  { id:11, name:"Felipe O.", role:"Operaciones", country:"Chile", flag:"🇨🇱", color:"#002D62", initials:"FO" },
+  { id:12, name:"Gabriela N.", role:"Finanzas", country:"Argentina", flag:"🇦🇷", color:"#74ACDF", initials:"GN" },
+  { id:13, name:"Sebastián A.", role:"Desarrollo", country:"Colombia", flag:"🇨🇴", color:"#FCD116", initials:"SA" },
+  { id:14, name:"Catalina B.", role:"RRHH", country:"Chile", flag:"🇨🇱", color:"#D4AF37", initials:"CB" },
+  { id:15, name:"Pablo E.", role:"Ventas", country:"México", flag:"🇲🇽", color:"#006847", initials:"PE" },
+  { id:16, name:"Natalia S.", role:"CS", country:"Chile", flag:"🇨🇱", color:"#C8102E", initials:"NS" },
+  { id:17, name:"Rodrigo J.", role:"Desarrollo", country:"Argentina", flag:"🇦🇷", color:"#002D62", initials:"RJ" },
+  { id:18, name:"Alejandra U.", role:"Producto", country:"Colombia", flag:"🇨🇴", color:"#CE1126", initials:"AU" },
+  { id:19, name:"Tomás I.", role:"Infraestructura", country:"Chile", flag:"🇨🇱", color:"#003087", initials:"TI" },
+  { id:20, name:"Daniela Q.", role:"Diseño", country:"México", flag:"🇲🇽", color:"#C8102E", initials:"DQ" },
+  { id:21, name:"Ignacio W.", role:"Desarrollo", country:"Chile", flag:"🇨🇱", color:"#75AADB", initials:"IW" },
+  { id:22, name:"Florencia K.", role:"CS", country:"Argentina", flag:"🇦🇷", color:"#006847", initials:"FK" },
+  { id:23, name:"Cristóbal Z.", role:"Ventas", country:"Colombia", flag:"🇨🇴", color:"#003087", initials:"CZ" },
+  { id:24, name:"María José X.", role:"Marketing", country:"México", flag:"🇲🇽", color:"#CE1126", initials:"MX" },
+];
+
+const COUNTRIES = ["Chile","Argentina","Colombia","México"];
+const COUNTRY_FLAGS = { "Chile":"🇨🇱","Argentina":"🇦🇷","Colombia":"🇨🇴","México":"🇲🇽" };
+
+// Avatar BG colors per member (cycling through palette)
+const BG_COLORS = ["#1a3a6b","#2d1b4e","#1a4a2e","#4a1a1a","#1a3a4a","#3a2d1b","#1a2d3a","#2d3a1b","#3a1a3a","#1a4a3a","#3a3a1b","#1b3a1a","#3a1a2d","#1a2a4a","#2a3a1a","#3a2a1b","#1a1a4a","#4a2a1a","#1a4a1a","#2a1a4a","#3a1b1a","#1a3b2a","#2a4a1a","#1a2a3a"];
+
+// Initialize state from localStorage
+function getState() {
+  const raw = localStorage.getItem('colegium_figuritas_v3');
+  if (raw) return JSON.parse(raw);
+  // Default: each user owns random ~60% of stickers, some duplicates
+  const users = {};
+  TEAM.forEach(p => {
+    const owned = {};
+    TEAM.forEach(s => {
+      const r = Math.random();
+      if (r < 0.55) owned[s.id] = 1;
+      else if (r < 0.72) owned[s.id] = 2; // duplicate
+    });
+    users[p.id] = { owned };
+  });
+  const state = { users, trades: [] };
+  saveState(state);
+  return state;
+}
+
+function saveState(state) {
+  localStorage.setItem('colegium_figuritas_v3', JSON.stringify(state));
+}
+
+let STATE = getState();
+let currentUserId = 1;
+let currentFilter = 'all';
+let currentCountryFilter = 'all';
+let selectedOffer = new Set();
+let selectedRequest = new Set();
+
+// ═══════════════════════════════
+// INIT
+// ═══════════════════════════════
+function init() {
+  // Populate user select
+  const sel = document.getElementById('current-user');
+  TEAM.forEach(p => {
+    const opt = document.createElement('option');
+    opt.value = p.id;
+    opt.textContent = `${p.flag} ${p.name}`;
+    sel.appendChild(opt);
+  });
+  sel.value = currentUserId;
+  renderAll();
+}
+
+function onUserChange() {
+  currentUserId = parseInt(document.getElementById('current-user').value);
+  renderAll();
+}
+
+function switchView(v) {
+  document.querySelectorAll('.view').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(el => el.classList.remove('active'));
+  document.getElementById('view-'+v).classList.add('active');
+  const btns = document.querySelectorAll('.nav-btn');
+  const map = ['mi-album','todos','intercambios','ranking'];
+  const idx = map.indexOf(v);
+  if (idx >= 0) btns[idx].classList.add('active');
+  if (v === 'todos') renderAlbum();
+  if (v === 'intercambios') renderTrades();
+  if (v === 'ranking') renderRanking();
+}
+
+function renderAll() {
+  renderMyAlbum();
+  updateTradeBadge();
+}
+
+// ═══════════════════════════════
+// MY ALBUM
+// ═══════════════════════════════
+function renderMyAlbum() {
+  const userOwned = STATE.users[currentUserId]?.owned || {};
+  const total = TEAM.length;
+  const owned = Object.entries(userOwned).filter(([,q]) => q > 0).length;
+  const dupes = Object.entries(userOwned).filter(([,q]) => q > 1).length;
+  const missing = total - owned;
+
+  // Stats
+  document.getElementById('stats-bar').innerHTML = `
+    <div class="stat-card">
+      <div class="stat-icon gold">⭐</div>
+      <div class="stat-info">
+        <div class="stat-val">${owned}</div>
+        <div class="stat-label">Tengo</div>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon green">🔄</div>
+      <div class="stat-info">
+        <div class="stat-val">${dupes}</div>
+        <div class="stat-label">Repetidas</div>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon red">❓</div>
+      <div class="stat-info">
+        <div class="stat-val">${missing}</div>
+        <div class="stat-label">Me faltan</div>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon blue">📊</div>
+      <div class="stat-info">
+        <div class="stat-val">${Math.round(owned/total*100)}%</div>
+        <div class="stat-label">Completo</div>
+      </div>
+    </div>
+  `;
+
+  // Progress
+  document.getElementById('progress-text').textContent = `${owned} / ${total}`;
+  document.getElementById('progress-fill').style.width = `${owned/total*100}%`;
+
+  // Grid
+  renderStickerGrid('my-sticker-grid', currentFilter, currentUserId);
+}
+
+function setFilter(filter, btn) {
+  currentFilter = filter;
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderStickerGrid('my-sticker-grid', filter, currentUserId);
+}
+
+function renderStickerGrid(containerId, filter, userId) {
+  const container = document.getElementById(containerId);
+  const owned = STATE.users[userId]?.owned || {};
+
+  let filtered = TEAM;
+  if (filter === 'owned') filtered = TEAM.filter(s => (owned[s.id]||0) >= 1);
+  if (filter === 'duplicate') filtered = TEAM.filter(s => (owned[s.id]||0) >= 2);
+  if (filter === 'missing') filtered = TEAM.filter(s => (owned[s.id]||0) === 0);
+
+  if (filtered.length === 0) {
+    container.innerHTML = `<div class="empty-state" style="grid-column:1/-1;"><div class="big">🗂️</div><p>No hay figuritas en esta categoría</p></div>`;
+    return;
+  }
+
+  container.innerHTML = filtered.map(s => stickerHTML(s, owned[s.id]||0)).join('');
+}
+
+function stickerHTML(s, qty) {
+  let stateClass = '';
+  let badgeHTML = '';
+  if (qty === 0) {
+    stateClass = 'missing';
+    badgeHTML = '<div class="sticker-badge missing-badge">Falta</div>';
+  } else if (qty === 1) {
+    stateClass = 'owned';
+    badgeHTML = '<div class="sticker-badge">✓</div>';
+  } else {
+    stateClass = 'duplicate owned';
+    badgeHTML = `<div class="sticker-badge dup">x${qty}</div>`;
+  }
+
+  const bg = BG_COLORS[(s.id-1) % BG_COLORS.length];
+
+  return `
+    <div class="sticker-card ${stateClass}" onclick="toggleOwn(${s.id})" title="Click para cambiar estado">
+      <div class="sticker-photo">
+        <div class="sticker-avatar" style="background:${bg}; color:rgba(255,255,255,0.9);">
+          ${s.initials}
+        </div>
+        <div class="sticker-number">#${String(s.id).padStart(2,'0')}</div>
+        ${badgeHTML}
+      </div>
+      <div class="sticker-info">
+        <div class="sticker-flag">${s.flag}</div>
+        <div class="sticker-name">${s.name}</div>
+        <div class="sticker-role">${s.role}</div>
+        <div class="sticker-country">${s.country}</div>
+      </div>
+    </div>
+  `;
+}
+
+function toggleOwn(stickerId) {
+  if (!STATE.users[currentUserId]) STATE.users[currentUserId] = { owned: {} };
+  const owned = STATE.users[currentUserId].owned;
+  const current = owned[stickerId] || 0;
+  if (current === 0) owned[stickerId] = 1;
+  else if (current === 1) owned[stickerId] = 2;
+  else owned[stickerId] = 0;
+  saveState(STATE);
+  renderAll();
+  const qty = owned[stickerId];
+  const sticker = TEAM.find(s => s.id === stickerId);
+  const msgs = ['❌ Marcada como faltante', '✅ ¡Figurita conseguida!', '🔄 Marcada como repetida'];
+  showToast(msgs[qty] + ` — ${sticker.name}`);
+}
+
+// ═══════════════════════════════
+// ALBUM COMPLETO
+// ═══════════════════════════════
+function renderAlbum() {
+  // Country filter buttons
+  const cfBtns = document.getElementById('country-filter-btns');
+  cfBtns.innerHTML = `<button class="filter-btn ${currentCountryFilter==='all'?'active':''}" onclick="setCountryFilter('all',this)">Todos</button>` +
+    COUNTRIES.map(c => `<button class="filter-btn ${currentCountryFilter===c?'active':''}" onclick="setCountryFilter('${c}',this)">${COUNTRY_FLAGS[c]} ${c}</button>`).join('');
+
+  const container = document.getElementById('album-by-country');
+  const countries = currentCountryFilter === 'all' ? COUNTRIES : [currentCountryFilter];
+  container.innerHTML = countries.map(country => {
+    const members = TEAM.filter(s => s.country === country);
+    return `
+      <div class="country-section">
+        <div class="country-header">
+          <div class="country-flag-big">${COUNTRY_FLAGS[country]}</div>
+          <div class="country-name">${country}</div>
+          <div class="country-count">${members.length} figuritas</div>
+        </div>
+        <div class="sticker-grid">
+          ${members.map(s => {
+            const owned = STATE.users[currentUserId]?.owned || {};
+            return stickerHTML(s, owned[s.id]||0);
+          }).join('')}
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function setCountryFilter(c, btn) {
+  currentCountryFilter = c;
+  renderAlbum();
+}
+
+// ═══════════════════════════════
+// TRADES
+// ═══════════════════════════════
+function renderTrades() {
+  const incoming = STATE.trades.filter(t => t.to === currentUserId && t.status === 'pending');
+  const outgoing = STATE.trades.filter(t => t.from === currentUserId);
+
+  // Incoming
+  const inEl = document.getElementById('incoming-trades');
+  if (incoming.length === 0) {
+    inEl.innerHTML = `<div class="empty-state" style="padding:40px 0;"><div class="big" style="font-size:40px;">📭</div><p>No tienes solicitudes pendientes</p></div>`;
+  } else {
+    inEl.innerHTML = incoming.map(t => tradeCardHTML(t, true)).join('');
+  }
+
+  // Outgoing
+  const outEl = document.getElementById('outgoing-trades');
+  const outHTML = outgoing.map(t => tradeCardHTML(t, false)).join('');
+  outEl.innerHTML = outgoing.length === 0 ?
+    `<div class="empty-state" style="padding:30px 0;"><div class="big" style="font-size:36px;">📤</div><p>Aún no has propuesto intercambios</p></div>` :
+    outHTML;
+}
+
+function tradeCardHTML(t, isIncoming) {
+  const fromUser = TEAM.find(p => p.id === t.from);
+  const toUser = TEAM.find(p => p.id === t.to);
+  const statusMap = { pending: 'Pendiente', accepted: 'Aceptado', rejected: 'Rechazado' };
+  const statusClass = { pending: 'status-pending', accepted: 'status-accepted', rejected: 'status-rejected' };
+
+  const offerStickers = t.offer.map(id => {
+    const s = TEAM.find(x => x.id === id);
+    return `<div class="mini-sticker">${s.flag} <span class="num">#${String(s.id).padStart(2,'0')}</span> ${s.name.split(' ')[0]}</div>`;
+  }).join('');
+
+  const requestStickers = t.request.map(id => {
+    const s = TEAM.find(x => x.id === id);
+    return `<div class="mini-sticker">${s.flag} <span class="num">#${String(s.id).padStart(2,'0')}</span> ${s.name.split(' ')[0]}</div>`;
+  }).join('');
+
+  const actions = isIncoming && t.status === 'pending' ? `
+    <div class="trade-actions">
+      <button class="btn btn-accept" onclick="respondTrade('${t.id}','accepted')">✓ Aceptar</button>
+      <button class="btn btn-reject" onclick="respondTrade('${t.id}','rejected')">✗ Rechazar</button>
+    </div>
+  ` : '';
+
+  return `
+    <div class="trade-request">
+      <div class="trade-parties">
+        <div>
+          <div class="trade-user">${fromUser.flag} ${fromUser.name}</div>
+          <div style="font-size:11px; color:rgba(255,255,255,0.4);">ofrece →</div>
+        </div>
+        <div class="trade-arrow" style="flex:1; text-align:center;">⇄</div>
+        <div style="text-align:right;">
+          <div class="trade-user">${toUser.flag} ${toUser.name}</div>
+          <div style="font-size:11px; color:rgba(255,255,255,0.4);">← pide</div>
+        </div>
+      </div>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:10px;">
+        <div>
+          <div style="font-size:10px; color:rgba(255,255,255,0.4); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:6px;">Da</div>
+          <div class="trade-stickers">${offerStickers}</div>
+        </div>
+        <div>
+          <div style="font-size:10px; color:rgba(255,255,255,0.4); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:6px;">Recibe</div>
+          <div class="trade-stickers">${requestStickers}</div>
+        </div>
+      </div>
+      ${t.msg ? `<div style="font-size:12px; color:rgba(255,255,255,0.5); font-style:italic; margin-bottom:10px; padding:6px 10px; background:rgba(255,255,255,0.04); border-radius:6px;">"${t.msg}"</div>` : ''}
+      <div style="display:flex; align-items:center; justify-content:space-between;">
+        <span class="trade-status ${statusClass[t.status]}">${statusMap[t.status]}</span>
+        <span style="font-size:11px; color:rgba(255,255,255,0.25);">${t.time}</span>
+      </div>
+      ${actions}
+    </div>
+  `;
+}
+
+function respondTrade(tradeId, response) {
+  const trade = STATE.trades.find(t => t.id === tradeId);
+  if (!trade) return;
+  trade.status = response;
+
+  if (response === 'accepted') {
+    // Execute the trade
+    const fromOwned = STATE.users[trade.from]?.owned || {};
+    const toOwned = STATE.users[trade.to]?.owned || {};
+
+    trade.offer.forEach(id => {
+      if ((fromOwned[id]||0) > 0) fromOwned[id]--;
+      toOwned[id] = (toOwned[id]||0) + 1;
+    });
+    trade.request.forEach(id => {
+      if ((toOwned[id]||0) > 0) toOwned[id]--;
+      fromOwned[id] = (fromOwned[id]||0) + 1;
+    });
+    showToast('🎉 ¡Intercambio completado! Las figuritas cambiaron de dueño');
+  } else {
+    showToast('❌ Intercambio rechazado');
+  }
+
+  saveState(STATE);
+  renderTrades();
+  updateTradeBadge();
+}
+
+function updateTradeBadge() {
+  const pending = STATE.trades.filter(t => t.to === currentUserId && t.status === 'pending').length;
+  const badge = document.getElementById('badge-trades');
+  if (pending > 0) {
+    badge.style.display = 'inline';
+    badge.textContent = pending;
+  } else {
+    badge.style.display = 'none';
+  }
+}
+
+// ═══════════════════════════════
+// MODAL
+// ═══════════════════════════════
+function openModal() {
+  selectedOffer = new Set();
+  selectedRequest = new Set();
+
+  // Partner select
+  const sel = document.getElementById('trade-partner');
+  sel.innerHTML = '<option value="">Selecciona una persona...</option>';
+  TEAM.filter(p => p.id !== currentUserId).forEach(p => {
+    const opt = document.createElement('option');
+    opt.value = p.id;
+    opt.textContent = `${p.flag} ${p.name} — ${p.role}`;
+    sel.appendChild(opt);
+  });
+  sel.onchange = () => refreshPickGrids();
+
+  // Offer grid (my duplicates)
+  refreshPickGrids();
+  document.getElementById('trade-msg').value = '';
+  document.getElementById('trade-modal').classList.add('open');
+}
+
+function refreshPickGrids() {
+  const partnerId = parseInt(document.getElementById('trade-partner').value);
+  const myOwned = STATE.users[currentUserId]?.owned || {};
+  const partnerOwned = STATE.users[partnerId]?.owned || {};
+
+  // My duplicates I can offer
+  const myDupes = TEAM.filter(s => (myOwned[s.id]||0) >= 2);
+  renderPickGrid('offer-grid', myDupes, selectedOffer, 'offer');
+
+  // Partner's duplicates that I'm missing
+  const partnerDupesIMissing = partnerId ?
+    TEAM.filter(s => (partnerOwned[s.id]||0) >= 2 && (myOwned[s.id]||0) === 0) :
+    [];
+  renderPickGrid('request-grid', partnerDupesIMissing, selectedRequest, 'request');
+}
+
+function renderPickGrid(containerId, stickers, selected, type) {
+  const container = document.getElementById(containerId);
+  if (stickers.length === 0) {
+    container.innerHTML = `<div style="color:rgba(255,255,255,0.3); font-size:13px; padding:16px; grid-column:1/-1; text-align:center;">${type==='offer' ? 'No tienes repetidas aún' : 'Selecciona un compañero primero'}</div>`;
+    return;
+  }
+  container.innerHTML = stickers.map(s => `
+    <div class="pick-item ${selected.has(s.id)?'selected-pick':''}" onclick="togglePick(${s.id},'${type}')">
+      <div class="pick-flag">${s.flag}</div>
+      <div class="pick-num">#${String(s.id).padStart(2,'0')}</div>
+      <div class="pick-name">${s.name.split(' ')[0]}</div>
+    </div>
+  `).join('');
+}
+
+function togglePick(id, type) {
+  const set = type === 'offer' ? selectedOffer : selectedRequest;
+  if (set.has(id)) set.delete(id);
+  else set.add(id);
+  refreshPickGrids();
+}
+
+function submitTrade() {
+  const partnerId = parseInt(document.getElementById('trade-partner').value);
+  if (!partnerId) { showToast('⚠️ Selecciona un compañero'); return; }
+  if (selectedOffer.size === 0) { showToast('⚠️ Selecciona qué figuritas ofreces'); return; }
+  if (selectedRequest.size === 0) { showToast('⚠️ Selecciona qué figuritas pides'); return; }
+
+  const msg = document.getElementById('trade-msg').value.trim();
+  const now = new Date();
+  const time = now.toLocaleDateString('es-CL', { day:'2-digit', month:'2-digit' }) + ' ' + now.toLocaleTimeString('es-CL', { hour:'2-digit', minute:'2-digit' });
+
+  const trade = {
+    id: 'T' + Date.now(),
+    from: currentUserId,
+    to: partnerId,
+    offer: [...selectedOffer],
+    request: [...selectedRequest],
+    msg,
+    status: 'pending',
+    time
+  };
+
+  STATE.trades.unshift(trade);
+  saveState(STATE);
+  closeModal();
+  const partner = TEAM.find(p => p.id === partnerId);
+  showToast(`✅ Propuesta enviada a ${partner.name}!`);
+  updateTradeBadge();
+}
+
+function closeModal() {
+  document.getElementById('trade-modal').classList.remove('open');
+}
+
+// ═══════════════════════════════
+// RANKING
+// ═══════════════════════════════
+function renderRanking() {
+  const scores = TEAM.map(p => {
+    const owned = STATE.users[p.id]?.owned || {};
+    const count = Object.values(owned).filter(q => q > 0).length;
+    const pct = Math.round(count / TEAM.length * 100);
+    return { ...p, count, pct };
+  }).sort((a,b) => b.count - a.count);
+
+  const max = scores[0]?.count || 1;
+  const container = document.getElementById('ranking-list');
+  container.innerHTML = scores.map((s, i) => {
+    const numClass = i===0?'top-1':i===1?'top-2':i===2?'top-3':'';
+    const bg = BG_COLORS[s.id % BG_COLORS.length];
+    const medal = i===0?'🥇':i===1?'🥈':i===2?'🥉':'';
+    return `
+      <div class="rank-row">
+        <div class="rank-num ${numClass}">${i+1}</div>
+        <div class="rank-avatar" style="background:${bg}; color:rgba(255,255,255,0.9); font-size:14px;">${s.initials}</div>
+        <div class="rank-info">
+          <div class="rank-name">${s.flag} ${s.name} ${medal}</div>
+          <div class="rank-meta">${s.role} · ${s.country}</div>
+        </div>
+        <div class="rank-bar-wrap">
+          <div class="rank-bar">
+            <div class="rank-fill" style="width:${s.count/max*100}%"></div>
+          </div>
+          <div class="rank-pct">${s.pct}% del álbum</div>
+        </div>
+        <div class="rank-count">${s.count}<span style="font-size:13px; color:rgba(255,255,255,0.3); font-family:'Nunito',sans-serif; font-weight:400;">/${TEAM.length}</span></div>
+      </div>
+    `;
+  }).join('');
+}
+
+// ═══════════════════════════════
+// TOAST
+// ═══════════════════════════════
+let toastTimeout;
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimeout);
+  toastTimeout = setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+// ═══════════════════════════════
+// START
+// ═══════════════════════════════
+init();
+</script>
+</body>
+</html>
