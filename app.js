@@ -119,6 +119,10 @@ function setStatus(text) {
   if (el) el.textContent = text;
 }
 
+function usingRemoteDb() {
+  return DB_MODE === 'remote' && Boolean(supabaseClient);
+}
+
 function seededFraction(seed) {
   const x = Math.sin(seed) * 10000;
   return x - Math.floor(x);
@@ -1107,7 +1111,7 @@ async function submitStickerCode() {
   try {
     let result = 'activated';
 
-    if (supabaseClient) {
+    if (usingRemoteDb()) {
       const { data, error } = await supabaseClient.rpc('activar_figurita_con_codigo', {
         p_user_id: currentUserId,
         p_figurita_id: pendingStickerId,
@@ -1260,7 +1264,7 @@ async function respondTrade(tradeId, response) {
     return;
   }
   try {
-    if (supabaseClient) {
+    if (usingRemoteDb()) {
       const { error } = await supabaseClient.rpc('responder_intercambio', {
         p_intercambio_id: tradeId,
         p_status: response,
@@ -1366,7 +1370,7 @@ async function submitTrade() {
 
   const msg = document.getElementById('trade-msg').value.trim();
   try {
-    if (supabaseClient) {
+    if (usingRemoteDb()) {
       const { error } = await supabaseClient.rpc('crear_intercambio', {
         p_from_user_id: currentUserId,
         p_to_user_id: partnerId,
@@ -1477,7 +1481,7 @@ async function sendMessage() {
   if (!body) return showToast('⚠️ Escribe un mensaje');
 
   try {
-    if (supabaseClient) {
+    if (usingRemoteDb()) {
       const { error } = await supabaseClient.rpc('crear_mensaje', {
         p_from_user_id: currentUserId,
         p_to_user_id: partnerId,
@@ -1512,7 +1516,7 @@ async function addComment() {
   if (!body) return showToast('⚠️ Escribe un comentario');
 
   try {
-    if (supabaseClient) {
+    if (usingRemoteDb()) {
       const { error } = await supabaseClient.rpc('crear_comentario', {
         p_user_id: currentUserId,
         p_figurita_id: figuritaId,
@@ -1603,7 +1607,7 @@ function renderCodesTableRows() {
 async function loadCodesRows() {
   if (!currentUserId || !codesAccessGranted) return [];
 
-  if (supabaseClient) {
+  if (usingRemoteDb()) {
     const { data, error } = await supabaseClient
       .from('codigos_sectretos')
       .select('figurita_id,nombre,secret_code')
@@ -1667,7 +1671,7 @@ function renderCodesView() {
 
 async function markMessagesAsRead(userId) {
   if (!userId) return;
-  if (supabaseClient) {
+  if (usingRemoteDb()) {
     const { error } = await supabaseClient.rpc('marcar_mensajes_leidos', {
       p_user_id: userId,
     });
@@ -1807,7 +1811,7 @@ function demoCreateComment(userId, figuritaId, body) {
 }
 
 async function reloadFromSource(keepView = true) {
-  if (supabaseClient) {
+  if (usingRemoteDb()) {
     await loadRemoteData();
   }
   rebuildDerivedData();
@@ -1833,10 +1837,10 @@ function showToast(msg) {
 
 async function boot() {
   hydrateUiState();
-  setStatus(supabaseClient ? 'Conectando a DB...' : 'Modo local');
+  setStatus(usingRemoteDb() ? 'Conectando a DB...' : 'Modo local');
 
   try {
-    if (supabaseClient) {
+    if (usingRemoteDb()) {
       await loadRemoteData();
       DB_MODE = 'remote';
       setStatus('DB conectada');
