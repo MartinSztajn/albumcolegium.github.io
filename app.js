@@ -438,14 +438,21 @@ function ensureCurrentUser() {
 function updateCurrentUserDisplay() {
   const label = document.getElementById('current-user-label');
   if (!label) return;
+  const logoutBtn = document.getElementById('logout-btn');
 
   if (!currentUserId) {
-    label.textContent = 'Sin sesión';
+    label.textContent = 'Inicia';
+    label.disabled = false;
+    label.title = 'Inicia sesión';
+    if (logoutBtn) logoutBtn.classList.add('hidden');
     return;
   }
 
   const user = APP.usuariosById.get(Number(currentUserId));
-  label.textContent = user ? `${user.flag} ${user.name}` : 'Sin sesión';
+  label.disabled = true;
+  label.textContent = user ? user.name : 'Inicia';
+  label.title = user ? `Sesión iniciada: ${user.name}` : 'Inicia sesión';
+  if (logoutBtn) logoutBtn.classList.remove('hidden');
 }
 
 function populateMessagePartnerSelect() {
@@ -535,11 +542,17 @@ function bindNavButtons() {
   });
 }
 
+function setGuestMode(isGuest) {
+  const shell = document.getElementById('app-shell');
+  if (!shell) return;
+  shell.classList.toggle('guest', Boolean(isGuest));
+}
+
 function showAuthScreen() {
   const auth = document.getElementById('auth-screen');
-  const shell = document.getElementById('app-shell');
+  setGuestMode(true);
+  updateCurrentUserDisplay();
   if (auth) auth.classList.remove('hidden');
-  if (shell) shell.classList.add('hidden');
   const usernameInput = document.getElementById('login-username');
   if (usernameInput) {
     window.requestAnimationFrame(() => usernameInput.focus());
@@ -548,9 +561,8 @@ function showAuthScreen() {
 
 function showAppShell() {
   const auth = document.getElementById('auth-screen');
-  const shell = document.getElementById('app-shell');
+  setGuestMode(false);
   if (auth) auth.classList.add('hidden');
-  if (shell) shell.classList.remove('hidden');
 }
 
 function bindAuthForm() {
@@ -562,6 +574,15 @@ function bindAuthForm() {
     form.addEventListener('submit', event => {
       event.preventDefault();
       void attemptLogin();
+    });
+  }
+
+  const sessionLabel = document.getElementById('current-user-label');
+  if (sessionLabel && !sessionLabel.dataset.bound) {
+    sessionLabel.dataset.bound = 'true';
+    sessionLabel.addEventListener('click', event => {
+      event.preventDefault();
+      if (!currentUserId) showAuthScreen();
     });
   }
 
@@ -622,6 +643,8 @@ function logoutCurrentUser() {
   const passwordInput = document.getElementById('login-password');
   if (usernameInput) usernameInput.value = '';
   if (passwordInput) passwordInput.value = '';
+  currentView = 'mi-album';
+  setGuestMode(true);
   updateCurrentUserDisplay();
   showAuthScreen();
   updateBadges();
@@ -675,10 +698,12 @@ function renderCurrentView() {
 function renderAll() {
   if (!currentUserId) {
     updateCurrentUserDisplay();
+    setGuestMode(true);
     showAuthScreen();
     return;
   }
   updateCurrentUserDisplay();
+  setGuestMode(false);
   populateMessagePartnerSelect();
   populateCommentFiguritaSelect();
   showAppShell();

@@ -121,6 +121,14 @@
     gap: 10px;
     flex-shrink: 0;
   }
+  .session-prefix {
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.7px;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.48);
+    white-space: nowrap;
+  }
   .conn-pill {
     font-size: 11px;
     font-weight: 800;
@@ -142,6 +150,15 @@
     border-radius: 999px;
     padding: 7px 12px;
     white-space: nowrap;
+  }
+  .session-pill {
+    min-width: 180px;
+    text-align: center;
+    cursor: pointer;
+  }
+  .session-pill:disabled {
+    cursor: default;
+    opacity: 1;
   }
   .btn-logout {
     padding: 7px 12px;
@@ -224,7 +241,13 @@
     color: #ff8d8d;
     font-weight: 700;
   }
-  .app-shell.hidden { display: none; }
+  .hidden { display: none !important; }
+  .app-shell {
+    min-height: 100vh;
+  }
+  .app-shell.guest main {
+    display: none;
+  }
 
   /* ── MAIN ── */
   main {
@@ -860,24 +883,24 @@
       </div>
     </div>
     <div class="auth-title">Mini Login</div>
-    <div class="auth-subtitle">Ingresá con tu usuario y contraseña. En esta versión ambos valores son iguales. No existe selector de usuarios.</div>
+    <div class="auth-subtitle">Ingresá con tu nombre de usuario. La contraseña es exactamente el mismo nombre.</div>
     <form id="login-form">
       <div class="auth-field">
         <label for="login-username">Usuario</label>
-        <input id="login-username" type="text" autocomplete="username" placeholder="Tu usuario">
+        <input id="login-username" type="text" autocomplete="username" placeholder="Tu nombre de usuario">
       </div>
       <div class="auth-field">
         <label for="login-password">Contraseña</label>
-        <input id="login-password" type="password" autocomplete="current-password" placeholder="La misma que tu usuario">
+        <input id="login-password" type="password" autocomplete="current-password" placeholder="El mismo nombre">
       </div>
       <button class="btn btn-propose btn-full" type="submit">Entrar</button>
-      <div class="auth-hint">Si estás probando la app, usá el mismo valor para usuario y contraseña.</div>
+      <div class="auth-hint">Ejemplo: si tu usuario es Pablo E., la contraseña también es Pablo E.</div>
       <div class="auth-error" id="login-error"></div>
     </form>
   </div>
 </div>
 
-<div id="app-shell" class="app-shell hidden">
+<div id="app-shell" class="app-shell guest">
 <!-- HEADER -->
 <header class="header">
   <div class="header-inner">
@@ -898,9 +921,10 @@
     </nav>
 
     <div class="session-wrap">
+      <span class="session-prefix">SOY:</span>
       <div class="conn-pill" id="db-status">Cargando...</div>
-      <div class="user-chip" id="current-user-label">Sin sesión</div>
-      <button type="button" class="btn btn-secondary btn-logout" id="logout-btn">Salir</button>
+      <button type="button" class="user-chip session-pill" id="current-user-label">Inicia</button>
+      <button type="button" class="btn btn-secondary btn-logout hidden" id="logout-btn">Salir</button>
     </div>
   </div>
 </header>
@@ -1032,6 +1056,6 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="app.js?v=20260522"></script>
+<script src="app.js?v=20260522-2"></script>
 </body>
 </html>
