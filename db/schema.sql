@@ -56,13 +56,17 @@ alter table public.figuritas
 create unique index if not exists idx_figuritas_secret_code
   on public.figuritas (secret_code);
 
-create or replace view public.codigos_sectretos as
+create or replace view public.codigos_secretos as
 select
   f.id as figurita_id,
   u.name as nombre,
   f.secret_code
 from public.figuritas f
 join public.usuarios u on u.id = f.user_id;
+
+create or replace view public.codigos_sectretos as
+select *
+from public.codigos_secretos;
 
 create table if not exists public.usuario_figuritas (
   user_id bigint not null references public.usuarios(id) on update cascade on delete cascade,
@@ -420,6 +424,7 @@ $$;
 grant usage on schema public to anon, authenticated;
 revoke select on public.figuritas from anon, authenticated;
 grant select (id, user_id, foto_path, created_at) on public.figuritas to anon, authenticated;
+grant select on public.codigos_secretos to anon, authenticated;
 grant select on public.codigos_sectretos to anon, authenticated;
 grant select on public.paises, public.usuarios, public.usuario_figuritas, public.intercambios, public.intercambio_items, public.mensajes, public.comentarios to anon, authenticated;
 grant execute on function public.set_usuario_figurita_qty(bigint, bigint, integer) to anon, authenticated;

@@ -25,6 +25,6 @@ from public.figuritas
 order by id;
 ```
 
-La vista oculta del frontend usa `codigos_sectretos` y se habilita con la clave `aguantecolegium`.
+La vista oculta del frontend usa `codigos_secretos` y se habilita con la clave `aguantecolegium`. Se deja `codigos_sectretos` como alias compatible.
 
 Con eso, `usuarios`, `figuritas`, `usuario_figuritas`, `intercambios`, `mensajes` y `comentarios` quedan sincronizados entre usuarios.

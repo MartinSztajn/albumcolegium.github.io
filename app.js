@@ -1608,12 +1608,23 @@ async function loadCodesRows() {
   if (!currentUserId || !codesAccessGranted) return [];
 
   if (usingRemoteDb()) {
-    const { data, error } = await supabaseClient
-      .from('codigos_sectretos')
-      .select('figurita_id,nombre,secret_code')
-      .order('figurita_id', { ascending: true });
-    if (error) throw error;
-    return data || [];
+    // Prefer the corrected view name, but keep the legacy typo as a fallback.
+    const remoteViews = ['codigos_secretos', 'codigos_sectretos'];
+    let lastError = null;
+
+    for (const viewName of remoteViews) {
+      const { data, error } = await supabaseClient
+        .from(viewName)
+        .select('figurita_id,nombre,secret_code')
+        .order('figurita_id', { ascending: true });
+
+      if (!error) return data || [];
+
+      lastError = error;
+      if (error.code !== 'PGRST205') break;
+    }
+
+    throw lastError;
   }
 
   return APP.figuritas.map(figurita => {
