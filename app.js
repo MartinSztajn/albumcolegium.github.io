@@ -133,6 +133,12 @@ function initialsFromName(name) {
     .join('');
 }
 
+function stripDiacritics(value) {
+  return String(value || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '');
+}
+
 function generateDemoSecretCode(seed, length = 8) {
   let value = Math.abs(Math.floor(seed)) + 1;
   let code = '';
@@ -220,11 +226,11 @@ function buildFallbackData() {
   const countryIdByName = new Map(paises.map(p => [p.nombre, p.id]));
   const usuarios = TEAM_SEED.map(user => ({
     id: user.id,
-    name: user.name,
+    name: stripDiacritics(user.name),
     role: user.role,
     pais_id: countryIdByName.get(user.country),
-    login_name: user.name,
-    login_password: user.name,
+    login_name: stripDiacritics(user.name),
+    login_password: stripDiacritics(user.name),
     lamina_path: '',
   }));
 
@@ -319,8 +325,21 @@ async function loadRemoteData() {
 
 function rebuildDerivedData() {
   APP.paises = [...APP.paises].sort(sortByIdAscending);
-  APP.usuarios = [...APP.usuarios].sort(sortByIdAscending);
-  APP.figuritas = [...APP.figuritas].sort(sortByIdAscending);
+  APP.usuarios = [...APP.usuarios]
+    .map(user => ({
+      ...user,
+      name: stripDiacritics(user.name),
+      login_name: stripDiacritics(user.login_name || user.name || ''),
+      login_password: stripDiacritics(user.login_password || user.login_name || user.name || ''),
+      lamina_path: stripDiacritics(user.lamina_path || ''),
+    }))
+    .sort(sortByIdAscending);
+  APP.figuritas = [...APP.figuritas]
+    .map(figurita => ({
+      ...figurita,
+      foto_path: stripDiacritics(figurita.foto_path || ''),
+    }))
+    .sort(sortByIdAscending);
   APP.usuarioFiguritas = [...APP.usuarioFiguritas];
   APP.intercambios = [...APP.intercambios].sort(sortByCreatedAtDesc);
   APP.intercambioItems = [...APP.intercambioItems];
@@ -435,11 +454,9 @@ function hydrateUiState() {
 }
 
 function normalizeCredential(value) {
-  return String(value || '')
+  return stripDiacritics(value)
     .trim()
     .toLowerCase()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
     .replace(/[^a-z0-9]/g, '');
 }
 
@@ -1090,6 +1107,12 @@ function demoActivateStickerWithCode(userId, stickerId, code) {
 
   const current = getLocalQty(userId, stickerId);
   setLocalStickerQty(userId, stickerId, current + 1);
+
+  const rawSticker = APP.figuritas.find(item => Number(item.id) === Number(stickerId));
+  if (rawSticker && !rawSticker.foto_path) {
+    rawSticker.foto_path = sticker.lamina_path || '';
+  }
+
   return 'activated';
 }
 

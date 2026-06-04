@@ -43,6 +43,12 @@ function escapeSql(value) {
   return String(value).replace(/'/g, "''");
 }
 
+function stripDiacritics(value) {
+  return String(value || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '');
+}
+
 function readLaminaFiles() {
   return fs
     .readdirSync(LAMINAS_DIR)
@@ -71,11 +77,12 @@ function buildSql(files) {
   lines.push('insert into public.usuarios (id, name, role, pais_id, login_name, login_password, lamina_path) values');
   lines.push(
     files.map((file, index) => {
-      const baseName = file.slice(0, -4);
+      const safeFile = stripDiacritics(file);
+      const baseName = safeFile.slice(0, -4);
       const role = ROLES[index % ROLES.length];
       const countryId = COUNTRIES[(index) % COUNTRIES.length].id;
       const suffix = index === files.length - 1 ? '' : ',';
-      return `  (${index + 1}, '${escapeSql(baseName)}', '${escapeSql(role)}', ${countryId}, '${escapeSql(baseName)}', '${escapeSql(baseName)}', 'laminas/${escapeSql(file)}')${suffix}`;
+      return `  (${index + 1}, '${escapeSql(baseName)}', '${escapeSql(role)}', ${countryId}, '${escapeSql(baseName)}', '${escapeSql(baseName)}', 'laminas/${escapeSql(safeFile)}')${suffix}`;
     }).join('\n'),
   );
   lines.push('on conflict (id) do update set');
@@ -90,7 +97,7 @@ function buildSql(files) {
   lines.push(
     files.map((file, index) => {
       const suffix = index === files.length - 1 ? '' : ',';
-      return `  (${index + 1}, ${index + 1}, 'laminas/${escapeSql(file)}')${suffix}`;
+      return `  (${index + 1}, ${index + 1}, 'laminas/${escapeSql(stripDiacritics(file))}')${suffix}`;
     }).join('\n'),
   );
   lines.push('on conflict (id) do update set');

@@ -23,6 +23,20 @@ create table if not exists public.usuarios (
 create index if not exists idx_usuarios_pais_id
   on public.usuarios (pais_id);
 
+create extension if not exists pgcrypto;
+create extension if not exists unaccent;
+
+create or replace function public.strip_diacritics(
+  p_text text
+)
+returns text
+language sql
+immutable
+set search_path = public
+as $$
+  select unaccent(coalesce(p_text, ''));
+$$;
+
 alter table public.usuarios
   add column if not exists login_name text,
   add column if not exists login_password text,
@@ -30,9 +44,10 @@ alter table public.usuarios
 
 update public.usuarios
 set
-  login_name = coalesce(nullif(login_name, ''), name),
-  login_password = coalesce(nullif(login_password, ''), coalesce(nullif(login_name, ''), name)),
-  lamina_path = coalesce(nullif(lamina_path, ''), '')
+  name = public.strip_diacritics(name),
+  login_name = public.strip_diacritics(coalesce(nullif(login_name, ''), name)),
+  login_password = public.strip_diacritics(coalesce(nullif(login_password, ''), coalesce(nullif(login_name, ''), name))),
+  lamina_path = public.strip_diacritics(coalesce(nullif(lamina_path, ''), ''))
 where true;
 
 alter table public.usuarios
@@ -54,8 +69,6 @@ create table if not exists public.figuritas (
 create index if not exists idx_figuritas_user_id
   on public.figuritas (user_id);
 
-create extension if not exists pgcrypto;
-
 create or replace function public.generate_secret_code(
   p_len integer default 8
 )
@@ -73,6 +86,10 @@ update public.figuritas
 set secret_code = coalesce(secret_code, public.generate_secret_code())
 where secret_code is null;
 
+update public.figuritas
+set foto_path = public.strip_diacritics(coalesce(nullif(foto_path, ''), ''))
+where true;
+
 alter table public.figuritas
   alter column secret_code set default public.generate_secret_code(),
   alter column secret_code set not null;
@@ -83,7 +100,7 @@ create unique index if not exists idx_figuritas_secret_code
 create or replace view public.codigos_secretos as
 select
   f.id as figurita_id,
-  u.name as nombre,
+  public.strip_diacritics(u.name) as nombre,
   f.secret_code
 from public.figuritas f
 join public.usuarios u on u.id = f.user_id;
@@ -241,7 +258,7 @@ begin
 
   if coalesce(v_lamina_path, '') <> '' then
     update public.figuritas
-    set foto_path = coalesce(nullif(foto_path, ''), v_lamina_path)
+    set foto_path = coalesce(nullif(foto_path, ''), public.strip_diacritics(v_lamina_path))
     where id = p_figurita_id;
   end if;
 
