@@ -258,22 +258,42 @@ async function fetchTable(table, orderColumn = 'id', ascending = true, columns =
 }
 
 async function loadRemoteData() {
+  const usuarios = await fetchTable('usuarios', 'id');
+
+  let figuritas;
+  try {
+    figuritas = await fetchTable('figuritas', 'id', true, 'id,user_id,foto_path');
+  } catch (error) {
+    console.warn('No se pudieron cargar figuritas desde la DB; se derivan desde usuarios.', error);
+    figuritas = usuarios.map(user => ({
+      id: Number(user.id),
+      user_id: Number(user.id),
+      foto_path: stripDiacritics(user.lamina_path || ''),
+      secret_code: '',
+    }));
+  }
+
+  const loadOrEmpty = async (table, orderColumn, ascending = true, columns = '*') => {
+    try {
+      return await fetchTable(table, orderColumn, ascending, columns);
+    } catch (error) {
+      console.warn(`No se pudieron cargar ${table} desde la DB.`, error);
+      return [];
+    }
+  };
+
   const [
-    usuarios,
-    figuritas,
     usuarioFiguritas,
     intercambios,
     intercambioItems,
     mensajes,
     comentarios,
   ] = await Promise.all([
-    fetchTable('usuarios', 'id'),
-    fetchTable('figuritas', 'id', true, 'id,user_id,foto_path,secret_code'),
-    fetchTable('usuario_figuritas', 'created_at'),
-    fetchTable('intercambios', 'created_at'),
-    fetchTable('intercambio_items', 'id'),
-    fetchTable('mensajes', 'created_at'),
-    fetchTable('comentarios', 'created_at'),
+    loadOrEmpty('usuario_figuritas', 'created_at'),
+    loadOrEmpty('intercambios', 'created_at'),
+    loadOrEmpty('intercambio_items', 'id'),
+    loadOrEmpty('mensajes', 'created_at'),
+    loadOrEmpty('comentarios', 'created_at'),
   ]);
 
   APP = {

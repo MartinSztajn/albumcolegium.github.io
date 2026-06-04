@@ -463,7 +463,7 @@ revoke select on public.figuritas from anon, authenticated;
 grant select (id, user_id, foto_path, created_at) on public.figuritas to anon, authenticated;
 grant select on public.codigos_secretos to anon, authenticated;
 grant select on public.codigos_sectretos to anon, authenticated;
-grant select on public.usuarios, public.usuario_figuritas, public.intercambios, public.intercambio_items, public.mensajes, public.comentarios to anon, authenticated;
+grant select on public.usuarios, public.figuritas, public.usuario_figuritas, public.intercambios, public.intercambio_items, public.mensajes, public.comentarios to anon, authenticated;
 grant execute on function public.set_usuario_figurita_qty(bigint, bigint, integer) to anon, authenticated;
 grant execute on function public.activar_figurita_con_codigo(bigint, bigint, text) to anon, authenticated;
 grant execute on function public.crear_intercambio(bigint, bigint, text, bigint[], bigint[]) to anon, authenticated;
