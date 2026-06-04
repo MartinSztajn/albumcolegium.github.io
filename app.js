@@ -11,14 +11,6 @@ const supabaseClient = HAS_SUPABASE_CONFIG
   ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
   : null;
 
-const COUNTRIES = ['Chile', 'Argentina', 'Colombia', 'México'];
-const COUNTRY_FLAGS = {
-  Chile: '🇨🇱',
-  Argentina: '🇦🇷',
-  Colombia: '🇨🇴',
-  México: '🇲🇽',
-};
-
 const BG_COLORS = [
   '#1a3a6b', '#2d1b4e', '#1a4a2e', '#4a1a1a', '#1a3a4a', '#3a2d1b',
   '#1a2d3a', '#2d3a1b', '#3a1a3a', '#1a4a3a', '#3a3a1b', '#1b3a1a',
@@ -33,30 +25,30 @@ const CODES_ACCESS_KEY = 'colegium_album_codes_access_v1';
 const CODES_ACCESS_CODE = 'aguantecolegium';
 
 const TEAM_SEED = [
-  { id: 1, name: 'Ariel G.', role: 'CEO', country: 'Chile' },
-  { id: 2, name: 'Valentina R.', role: 'Producto', country: 'Chile' },
-  { id: 3, name: 'Diego M.', role: 'Desarrollo', country: 'Argentina' },
-  { id: 4, name: 'Camila F.', role: 'CS', country: 'Colombia' },
-  { id: 5, name: 'Matías L.', role: 'Desarrollo', country: 'Chile' },
-  { id: 6, name: 'Sofía P.', role: 'Diseño', country: 'México' },
-  { id: 7, name: 'Andrés C.', role: 'Ventas', country: 'Colombia' },
-  { id: 8, name: 'Isabella T.', role: 'CS', country: 'Argentina' },
-  { id: 9, name: 'Lucas H.', role: 'Desarrollo', country: 'Chile' },
-  { id: 10, name: 'Martina V.', role: 'Marketing', country: 'México' },
-  { id: 11, name: 'Felipe O.', role: 'Operaciones', country: 'Chile' },
-  { id: 12, name: 'Gabriela N.', role: 'Finanzas', country: 'Argentina' },
-  { id: 13, name: 'Sebastián A.', role: 'Desarrollo', country: 'Colombia' },
-  { id: 14, name: 'Catalina B.', role: 'RRHH', country: 'Chile' },
-  { id: 15, name: 'Pablo E.', role: 'Ventas', country: 'México' },
-  { id: 16, name: 'Natalia S.', role: 'CS', country: 'Chile' },
-  { id: 17, name: 'Rodrigo J.', role: 'Desarrollo', country: 'Argentina' },
-  { id: 18, name: 'Alejandra U.', role: 'Producto', country: 'Colombia' },
-  { id: 19, name: 'Tomás I.', role: 'Infraestructura', country: 'Chile' },
-  { id: 20, name: 'Daniela Q.', role: 'Diseño', country: 'México' },
-  { id: 21, name: 'Ignacio W.', role: 'Desarrollo', country: 'Chile' },
-  { id: 22, name: 'Florencia K.', role: 'CS', country: 'Argentina' },
-  { id: 23, name: 'Cristóbal Z.', role: 'Ventas', country: 'Colombia' },
-  { id: 24, name: 'María José X.', role: 'Marketing', country: 'México' },
+  { id: 1, name: 'Ariel G.' },
+  { id: 2, name: 'Valentina R.' },
+  { id: 3, name: 'Diego M.' },
+  { id: 4, name: 'Camila F.' },
+  { id: 5, name: 'Matias L.' },
+  { id: 6, name: 'Sofia P.' },
+  { id: 7, name: 'Andres C.' },
+  { id: 8, name: 'Isabella T.' },
+  { id: 9, name: 'Lucas H.' },
+  { id: 10, name: 'Martina V.' },
+  { id: 11, name: 'Felipe O.' },
+  { id: 12, name: 'Gabriela N.' },
+  { id: 13, name: 'Sebastian A.' },
+  { id: 14, name: 'Catalina B.' },
+  { id: 15, name: 'Pablo E.' },
+  { id: 16, name: 'Natalia S.' },
+  { id: 17, name: 'Rodrigo J.' },
+  { id: 18, name: 'Alejandra U.' },
+  { id: 19, name: 'Tomas I.' },
+  { id: 20, name: 'Daniela Q.' },
+  { id: 21, name: 'Ignacio W.' },
+  { id: 22, name: 'Florencia K.' },
+  { id: 23, name: 'Cristobal Z.' },
+  { id: 24, name: 'Maria Jose X.' },
 ];
 
 let APP = createEmptyApp();
@@ -64,7 +56,6 @@ let DB_MODE = supabaseClient ? 'remote' : 'demo';
 let currentUserId = null;
 let currentView = 'mi-album';
 let currentFilter = 'all';
-let currentCountryFilter = 'all';
 let selectedOffer = new Set();
 let selectedRequest = new Set();
 let pendingStickerId = null;
@@ -76,7 +67,6 @@ let toastTimeout = null;
 
 function createEmptyApp() {
   return {
-    paises: [],
     usuarios: [],
     figuritas: [],
     usuarioFiguritas: [],
@@ -84,7 +74,6 @@ function createEmptyApp() {
     intercambioItems: [],
     mensajes: [],
     comentarios: [],
-    paisesById: new Map(),
     usuariosById: new Map(),
     figuritasById: new Map(),
     ownedByUser: {},
@@ -107,7 +96,6 @@ function saveUiPrefs() {
     localStorage.setItem(UI_PREFS_KEY, JSON.stringify({
       currentView,
       currentFilter,
-      currentCountryFilter,
     }));
   } catch {
     // ignore
@@ -211,24 +199,10 @@ function getUserById(id) {
   return APP.usuariosById.get(Number(id)) || null;
 }
 
-function getCountryById(id) {
-  return APP.paisesById.get(Number(id)) || null;
-}
-
 function buildFallbackData() {
-  const paises = COUNTRIES.map((nombre, idx) => ({
-    id: idx + 1,
-    nombre,
-    flag: COUNTRY_FLAGS[nombre],
-    initials: nombre === 'México' ? 'MX' : nombre.slice(0, 2).toUpperCase(),
-  }));
-
-  const countryIdByName = new Map(paises.map(p => [p.nombre, p.id]));
   const usuarios = TEAM_SEED.map(user => ({
     id: user.id,
     name: stripDiacritics(user.name),
-    role: user.role,
-    pais_id: countryIdByName.get(user.country),
     login_name: stripDiacritics(user.name),
     login_password: stripDiacritics(user.name),
     lamina_path: '',
@@ -264,7 +238,6 @@ function buildFallbackData() {
   });
 
   return {
-    paises,
     usuarios,
     figuritas,
     usuarioFiguritas,
@@ -286,7 +259,6 @@ async function fetchTable(table, orderColumn = 'id', ascending = true, columns =
 
 async function loadRemoteData() {
   const [
-    paises,
     usuarios,
     figuritas,
     usuarioFiguritas,
@@ -295,9 +267,8 @@ async function loadRemoteData() {
     mensajes,
     comentarios,
   ] = await Promise.all([
-    fetchTable('paises', 'id'),
     fetchTable('usuarios', 'id'),
-    fetchTable('figuritas', 'id', true, 'id,user_id,foto_path'),
+    fetchTable('figuritas', 'id', true, 'id,user_id,foto_path,secret_code'),
     fetchTable('usuario_figuritas', 'created_at'),
     fetchTable('intercambios', 'created_at'),
     fetchTable('intercambio_items', 'id'),
@@ -306,7 +277,6 @@ async function loadRemoteData() {
   ]);
 
   APP = {
-    paises,
     usuarios,
     figuritas,
     usuarioFiguritas,
@@ -314,7 +284,6 @@ async function loadRemoteData() {
     intercambioItems,
     mensajes,
     comentarios,
-    paisesById: new Map(),
     usuariosById: new Map(),
     figuritasById: new Map(),
     ownedByUser: {},
@@ -324,7 +293,6 @@ async function loadRemoteData() {
 }
 
 function rebuildDerivedData() {
-  APP.paises = [...APP.paises].sort(sortByIdAscending);
   APP.usuarios = [...APP.usuarios]
     .map(user => ({
       ...user,
@@ -346,26 +314,13 @@ function rebuildDerivedData() {
   APP.mensajes = [...APP.mensajes].sort(sortByCreatedAtDesc);
   APP.comentarios = [...APP.comentarios].sort(sortByCreatedAtDesc);
 
-  APP.paisesById = new Map(APP.paises.map(p => [Number(p.id), {
-    id: Number(p.id),
-    nombre: p.nombre,
-    flag: p.flag,
-    initials: p.initials,
-  }]));
-
   APP.usuariosById = new Map(APP.usuarios.map(u => {
-    const pais = APP.paisesById.get(Number(u.pais_id)) || null;
     const enriched = {
       id: Number(u.id),
       name: u.name,
-      role: u.role,
-      pais_id: Number(u.pais_id),
       login_name: u.login_name || '',
       login_password: u.login_password || '',
       lamina_path: u.lamina_path || '',
-      pais,
-      country: pais?.nombre || '',
-      flag: pais?.flag || '🏳️',
       initials: initialsFromName(u.name),
     };
     return [enriched.id, enriched];
@@ -373,7 +328,6 @@ function rebuildDerivedData() {
 
   APP.figuritasById = new Map(APP.figuritas.map(f => {
     const user = APP.usuariosById.get(Number(f.user_id)) || null;
-    const pais = user?.pais || null;
     const fotoPath = f.foto_path || user?.lamina_path || '';
     const enriched = {
       id: Number(f.id),
@@ -383,10 +337,6 @@ function rebuildDerivedData() {
       lamina_path: user?.lamina_path || '',
       user,
       name: user?.name || `Usuario ${f.user_id}`,
-      role: user?.role || '',
-      pais_id: user?.pais_id || null,
-      country: pais?.nombre || '',
-      flag: pais?.flag || '🏳️',
       initials: initialsFromName(user?.name || `#${f.id}`),
     };
     return [enriched.id, enriched];
@@ -428,7 +378,6 @@ function rebuildDerivedData() {
   APP.stickers = APP.figuritas.map(figurita => {
     const user = APP.usuariosById.get(Number(figurita.user_id));
     const fotoPath = figurita.foto_path || user?.lamina_path || '';
-    const pais = user?.pais || null;
     return {
       id: Number(figurita.id),
       user_id: Number(figurita.user_id),
@@ -436,9 +385,6 @@ function rebuildDerivedData() {
       lamina_path: user?.lamina_path || '',
       user,
       name: user?.name || `Usuario ${figurita.user_id}`,
-      role: user?.role || '',
-      country: pais?.nombre || '',
-      flag: pais?.flag || '🏳️',
       initials: initialsFromName(user?.name || `#${figurita.id}`),
     };
   });
@@ -448,7 +394,6 @@ function hydrateUiState() {
   const prefs = loadUiPrefs();
   currentView = prefs.currentView || 'mi-album';
   currentFilter = prefs.currentFilter || 'all';
-  currentCountryFilter = prefs.currentCountryFilter || 'all';
   currentUserId = loadAuthSession();
   codesAccessGranted = loadCodesAccess();
 }
@@ -559,10 +504,9 @@ function populateMessagePartnerSelect() {
   APP.usuarios
     .filter(user => user.id !== currentUserId)
     .forEach(user => {
-      const enriched = APP.usuariosById.get(Number(user.id));
       const option = document.createElement('option');
       option.value = String(user.id);
-      option.textContent = `${enriched?.flag || '🏳️'} ${user.name} — ${user.role}`;
+      option.textContent = user.name;
       select.appendChild(option);
     });
 
@@ -579,7 +523,7 @@ function populateCommentFiguritaSelect() {
   APP.stickers.forEach(sticker => {
     const option = document.createElement('option');
     option.value = String(sticker.id);
-    option.textContent = `#${String(sticker.id).padStart(2, '0')} ${sticker.flag} ${sticker.name}`;
+    option.textContent = `#${String(sticker.id).padStart(2, '0')} ${sticker.name}`;
     select.appendChild(option);
   });
 
@@ -804,7 +748,6 @@ async function attemptLogin() {
   saveAuthSession(currentUserId);
   currentView = 'mi-album';
   currentFilter = 'all';
-  currentCountryFilter = 'all';
   saveUiPrefs();
   setLoginError('');
   if (usernameInput) usernameInput.value = '';
@@ -934,12 +877,6 @@ function setFilter(filter, btn) {
   renderMyAlbum();
 }
 
-function setCountryFilter(country) {
-  currentCountryFilter = country;
-  saveUiPrefs();
-  renderAlbum();
-}
-
 function renderMyAlbum() {
   const owned = getOwnedMap(currentUserId);
   const total = APP.stickers.length || 1;
@@ -1036,10 +973,7 @@ function stickerHTML(sticker, qty) {
         ${badgeHTML}
       </div>
       <div class="sticker-info">
-        <div class="sticker-flag">${escapeHtml(sticker.flag)}</div>
         <div class="sticker-name">${escapeHtml(sticker.name)}</div>
-        <div class="sticker-role">${escapeHtml(sticker.role)}</div>
-        <div class="sticker-country">${escapeHtml(sticker.country)}</div>
       </div>
     </div>
   `;
@@ -1070,10 +1004,9 @@ function openStickerCodeModal(stickerId) {
   if (target) {
     const bg = BG_COLORS[(Number(stickerId) - 1) % BG_COLORS.length];
     target.innerHTML = `
-      <div class="code-target-emoji" style="background:${bg}; color:rgba(255,255,255,0.95);">${escapeHtml(sticker?.flag || '🔒')}</div>
+      <div class="code-target-emoji" style="background:${bg}; color:rgba(255,255,255,0.95);">${escapeHtml(sticker?.initials || '🔒')}</div>
       <div class="code-target-info">
         <div class="code-target-name">#${String(stickerId).padStart(2, '0')} ${escapeHtml(sticker?.name || 'Figurita')}</div>
-        <div class="code-target-meta">${escapeHtml(sticker?.role || '')}${sticker?.country ? ` · ${escapeHtml(sticker.country)}` : ''}</div>
       </div>
     `;
   }
@@ -1165,42 +1098,7 @@ async function submitStickerCode() {
 }
 
 function renderAlbum() {
-  const btns = document.getElementById('country-filter-btns');
-  if (btns) {
-    const countryButtons = [
-      `<button class="filter-btn ${currentCountryFilter === 'all' ? 'active' : ''}" onclick="setCountryFilter('all')">Todos</button>`,
-      ...APP.paises.map(country => `
-        <button class="filter-btn ${currentCountryFilter === country.nombre ? 'active' : ''}" onclick="setCountryFilter('${escapeAttr(country.nombre)}')">
-          ${escapeHtml(country.flag)} ${escapeHtml(country.nombre)}
-        </button>
-      `),
-    ];
-    btns.innerHTML = countryButtons.join('');
-  }
-
-  const container = document.getElementById('album-by-country');
-  if (!container) return;
-
-  const countries = currentCountryFilter === 'all'
-    ? APP.paises
-    : APP.paises.filter(country => country.nombre === currentCountryFilter);
-
-  const owned = getOwnedMap(currentUserId);
-  container.innerHTML = countries.map(country => {
-    const members = APP.stickers.filter(sticker => sticker.country === country.nombre);
-    return `
-      <div class="country-section">
-        <div class="country-header">
-          <div class="country-flag-big">${escapeHtml(country.flag)}</div>
-          <div class="country-name">${escapeHtml(country.nombre)}</div>
-          <div class="country-count">${members.length} figuritas</div>
-        </div>
-        <div class="sticker-grid">
-          ${members.map(sticker => stickerHTML(sticker, owned[sticker.id] || 0)).join('')}
-        </div>
-      </div>
-    `;
-  }).join('');
+  renderStickerGrid('album-grid', 'all', currentUserId);
 }
 
 function renderTrades() {
@@ -1247,12 +1145,12 @@ function tradeCardHTML(trade, isIncoming) {
     <div class="trade-request">
       <div class="trade-parties">
         <div>
-          <div class="trade-user">${escapeHtml(fromUser?.flag || '🏳️')} ${escapeHtml(fromUser?.name || 'Usuario')}</div>
+          <div class="trade-user">${escapeHtml(fromUser?.name || 'Usuario')}</div>
           <div style="font-size:11px; color:rgba(255,255,255,0.4);">ofrece →</div>
         </div>
         <div class="trade-arrow" style="flex:1; text-align:center;">⇄</div>
         <div style="text-align:right;">
-          <div class="trade-user">${escapeHtml(toUser?.flag || '🏳️')} ${escapeHtml(toUser?.name || 'Usuario')}</div>
+          <div class="trade-user">${escapeHtml(toUser?.name || 'Usuario')}</div>
           <div style="font-size:11px; color:rgba(255,255,255,0.4);">← pide</div>
         </div>
       </div>
@@ -1278,7 +1176,7 @@ function tradeCardHTML(trade, isIncoming) {
 
 function miniStickerHTML(sticker) {
   if (!sticker) return '<div class="mini-sticker">Figurita desconocida</div>';
-  return `<div class="mini-sticker">${escapeHtml(sticker.flag)} <span class="num">#${String(sticker.id).padStart(2, '0')}</span> ${escapeHtml(sticker.name.split(' ')[0])}</div>`;
+  return `<div class="mini-sticker"><span class="num">#${String(sticker.id).padStart(2, '0')}</span> ${escapeHtml(sticker.name.split(' ')[0])}</div>`;
 }
 
 async function respondTrade(tradeId, response) {
@@ -1325,10 +1223,9 @@ function openModal() {
     APP.usuarios
       .filter(user => user.id !== currentUserId)
       .forEach(user => {
-        const enriched = APP.usuariosById.get(Number(user.id));
         const option = document.createElement('option');
         option.value = String(user.id);
-        option.textContent = `${enriched?.flag || '🏳️'} ${user.name} — ${user.role}`;
+        option.textContent = user.name;
         sel.appendChild(option);
       });
     sel.onchange = () => {
@@ -1367,7 +1264,6 @@ function renderPickGrid(containerId, stickers, selected, type) {
 
   container.innerHTML = stickers.map(sticker => `
     <div class="pick-item ${selected.has(sticker.id) ? 'selected-pick' : ''}" onclick="togglePick(${sticker.id}, '${type}')">
-      <div class="pick-flag">${escapeHtml(sticker.flag)}</div>
       <div class="pick-num">#${String(sticker.id).padStart(2, '0')}</div>
       <div class="pick-name">${escapeHtml(sticker.name.split(' ')[0])}</div>
     </div>
@@ -1566,12 +1462,9 @@ function renderRanking() {
     const owned = getOwnedMap(user.id);
     const count = countDistinctOwned(owned);
     const pct = APP.stickers.length ? Math.round((count / APP.stickers.length) * 100) : 0;
-    const enriched = APP.usuariosById.get(Number(user.id));
     return {
       ...user,
-      flag: enriched?.flag || '🏳️',
-      initials: enriched?.initials || initialsFromName(user.name),
-      country: enriched?.country || '',
+      initials: initialsFromName(user.name),
       count,
       pct,
     };
@@ -1590,8 +1483,7 @@ function renderRanking() {
         <div class="rank-num ${numClass}">${index + 1}</div>
         <div class="rank-avatar" style="background:${bg}; color:rgba(255,255,255,0.9); font-size:14px;">${escapeHtml(score.initials)}</div>
         <div class="rank-info">
-          <div class="rank-name">${escapeHtml(score.flag)} ${escapeHtml(score.name)} ${medal}</div>
-          <div class="rank-meta">${escapeHtml(score.role)} · ${escapeHtml(score.country)}</div>
+          <div class="rank-name">${escapeHtml(score.name)} ${medal}</div>
         </div>
         <div class="rank-bar-wrap">
           <div class="rank-bar">

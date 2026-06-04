@@ -411,30 +411,12 @@
     padding: 10px 10px 12px;
     background: var(--navy-mid);
   }
-  .sticker-flag {
-    font-size: 20px;
-    margin-bottom: 4px;
-  }
   .sticker-name {
     font-size: 12px;
     font-weight: 800;
     color: var(--white);
     line-height: 1.2;
     margin-bottom: 2px;
-  }
-  .sticker-role {
-    font-size: 10px;
-    color: rgba(255,255,255,0.45);
-    text-transform: uppercase;
-    letter-spacing: 0.3px;
-  }
-  .sticker-country {
-    font-size: 10px;
-    color: var(--gold);
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    margin-top: 4px;
   }
 
   /* ── ALBUM PROGRESS ── */
@@ -752,7 +734,6 @@
   }
   .pick-item:hover { border-color: var(--gold); }
   .pick-item.selected-pick { border-color: var(--gold); background: rgba(245,200,66,0.12); }
-  .pick-item .pick-flag { font-size: 16px; margin-bottom: 3px; }
   .pick-item .pick-num { color: var(--gold); font-family: 'Bebas Neue', sans-serif; font-size: 14px; }
   .pick-item .pick-name { color: rgba(255,255,255,0.7); font-size: 10px; font-weight: 700; line-height: 1.2; }
 
@@ -838,29 +819,6 @@
     color: var(--gold);
     min-width: 50px;
     text-align: right;
-  }
-
-  /* ── COUNTRY SECTIONS ── */
-  .country-section { margin-bottom: 32px; }
-  .country-header {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    margin-bottom: 14px;
-    padding-bottom: 10px;
-    border-bottom: 1px solid rgba(255,255,255,0.08);
-  }
-  .country-flag-big { font-size: 32px; }
-  .country-name {
-    font-family: 'Bebas Neue', sans-serif;
-    font-size: 24px;
-    letter-spacing: 2px;
-    color: var(--white);
-  }
-  .country-count {
-    font-size: 13px;
-    color: rgba(255,255,255,0.4);
-    margin-left: auto;
   }
 
   /* ── TOAST ── */
@@ -1049,9 +1007,8 @@
   <div class="view" id="view-todos">
     <div class="section-header">
       <div class="section-title">Álbum Completo</div>
-      <div class="filter-group" id="country-filter-btns"></div>
     </div>
-    <div id="album-by-country"></div>
+    <div class="sticker-grid" id="album-grid"></div>
   </div>
 
   <!-- INTERCAMBIOS -->
