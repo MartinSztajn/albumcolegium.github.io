@@ -114,11 +114,6 @@ function saveUiPrefs() {
   }
 }
 
-function setStatus(text) {
-  const el = document.getElementById('db-status');
-  if (el) el.textContent = text;
-}
-
 function usingRemoteDb() {
   return DB_MODE === 'remote' && Boolean(supabaseClient);
 }
@@ -228,6 +223,9 @@ function buildFallbackData() {
     name: user.name,
     role: user.role,
     pais_id: countryIdByName.get(user.country),
+    login_name: user.name,
+    login_password: user.name,
+    lamina_path: '',
   }));
 
   const figuritas = usuarios.map(user => ({
@@ -343,6 +341,9 @@ function rebuildDerivedData() {
       name: u.name,
       role: u.role,
       pais_id: Number(u.pais_id),
+      login_name: u.login_name || '',
+      login_password: u.login_password || '',
+      lamina_path: u.lamina_path || '',
       pais,
       country: pais?.nombre || '',
       flag: pais?.flag || '🏳️',
@@ -354,11 +355,13 @@ function rebuildDerivedData() {
   APP.figuritasById = new Map(APP.figuritas.map(f => {
     const user = APP.usuariosById.get(Number(f.user_id)) || null;
     const pais = user?.pais || null;
+    const fotoPath = f.foto_path || user?.lamina_path || '';
     const enriched = {
       id: Number(f.id),
       user_id: Number(f.user_id),
-      foto_path: f.foto_path || '',
+      foto_path: fotoPath,
       secret_code: f.secret_code || '',
+      lamina_path: user?.lamina_path || '',
       user,
       name: user?.name || `Usuario ${f.user_id}`,
       role: user?.role || '',
@@ -405,11 +408,14 @@ function rebuildDerivedData() {
 
   APP.stickers = APP.figuritas.map(figurita => {
     const user = APP.usuariosById.get(Number(figurita.user_id));
+    const fotoPath = figurita.foto_path || user?.lamina_path || '';
     const pais = user?.pais || null;
     return {
       id: Number(figurita.id),
       user_id: Number(figurita.user_id),
-      foto_path: figurita.foto_path || '',
+      foto_path: fotoPath,
+      lamina_path: user?.lamina_path || '',
+      user,
       name: user?.name || `Usuario ${figurita.user_id}`,
       role: user?.role || '',
       country: pais?.nombre || '',
@@ -767,14 +773,13 @@ async function attemptLogin() {
     return;
   }
 
-  if (username !== password) {
-    setLoginError('Usuario y contraseña deben ser iguales.');
-    return;
-  }
-
-  const user = APP.usuarios.find(candidate => normalizeCredential(candidate.login_name || candidate.name) === username);
+  const user = APP.usuarios.find(candidate => {
+    const candidateUsername = normalizeCredential(candidate.login_name || candidate.name);
+    const candidatePassword = normalizeCredential(candidate.login_password || candidate.login_name || candidate.name);
+    return candidateUsername === username && candidatePassword === password;
+  });
   if (!user) {
-    setLoginError('Usuario inválido.');
+    setLoginError('Usuario o contraseña incorrectos.');
     return;
   }
 
@@ -1001,8 +1006,9 @@ function stickerHTML(sticker, qty) {
   }
 
   const bg = BG_COLORS[(sticker.id - 1) % BG_COLORS.length];
-  const imageHTML = sticker.foto_path
-    ? `<img class="sticker-image" src="${escapeAttr(sticker.foto_path)}" alt="${escapeAttr(sticker.name)}">`
+  const imagePath = qty > 0 ? (sticker.foto_path || sticker.lamina_path || '') : '';
+  const imageHTML = imagePath
+    ? `<img class="sticker-image" src="${escapeAttr(imagePath)}" alt="${escapeAttr(sticker.name)}">`
     : `<div class="sticker-avatar" style="background:${bg}; color:rgba(255,255,255,0.9);">${escapeHtml(sticker.initials)}</div>`;
 
   return `
@@ -1082,11 +1088,8 @@ function demoActivateStickerWithCode(userId, stickerId, code) {
     throw new Error('codigo incorrecto');
   }
 
-  const owned = getOwnedMap(userId);
-  const current = owned[stickerId] || 0;
-  if (current > 0) return 'already_owned';
-
-  setLocalStickerQty(userId, stickerId, 1);
+  const current = getLocalQty(userId, stickerId);
+  setLocalStickerQty(userId, stickerId, current + 1);
   return 'activated';
 }
 
@@ -1109,25 +1112,22 @@ async function submitStickerCode() {
   }
 
   try {
-    let result = 'activated';
-
     if (usingRemoteDb()) {
-      const { data, error } = await supabaseClient.rpc('activar_figurita_con_codigo', {
+      const { error } = await supabaseClient.rpc('activar_figurita_con_codigo', {
         p_user_id: currentUserId,
         p_figurita_id: pendingStickerId,
         p_codigo: code,
       });
       if (error) throw error;
-      result = data || 'activated';
       await reloadFromSource();
     } else {
-      result = demoActivateStickerWithCode(currentUserId, pendingStickerId, code);
+      demoActivateStickerWithCode(currentUserId, pendingStickerId, code);
       rebuildDerivedData();
       renderAll();
     }
 
     closeStickerCodeModal();
-    showToast(result === 'already_owned' ? 'ℹ️ Esa figurita ya estaba activa' : '✅ Figurita activada');
+    showToast('✅ Figurita activada');
   } catch (error) {
     console.error(error);
     const msg = String(error?.message || '').toLowerCase();
@@ -1848,23 +1848,19 @@ function showToast(msg) {
 
 async function boot() {
   hydrateUiState();
-  setStatus(usingRemoteDb() ? 'Conectando a DB...' : 'Modo local');
 
   try {
     if (usingRemoteDb()) {
       await loadRemoteData();
       DB_MODE = 'remote';
-      setStatus('DB conectada');
     } else {
       APP = buildFallbackData();
       DB_MODE = 'demo';
-      setStatus('Modo local');
     }
   } catch (error) {
     console.error(error);
     APP = buildFallbackData();
     DB_MODE = 'demo';
-    setStatus('Modo local');
     showToast('No se pudo conectar a la DB, usando modo local');
   }
 

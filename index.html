@@ -129,18 +129,6 @@
     color: rgba(255,255,255,0.48);
     white-space: nowrap;
   }
-  .conn-pill {
-    font-size: 11px;
-    font-weight: 800;
-    letter-spacing: 0.6px;
-    text-transform: uppercase;
-    padding: 7px 10px;
-    border-radius: 999px;
-    background: rgba(255,255,255,0.08);
-    border: 1px solid rgba(255,255,255,0.12);
-    color: rgba(255,255,255,0.68);
-    white-space: nowrap;
-  }
   .user-chip {
     font-size: 12px;
     font-weight: 800;
@@ -995,7 +983,7 @@
         <input id="login-password" type="password" autocomplete="current-password" placeholder="El mismo nombre">
       </div>
       <button class="btn btn-propose btn-full" type="submit">Entrar</button>
-      <div class="auth-hint">Ejemplo: si tu usuario es Pablo E., la contraseña también es Pablo E.</div>
+      <div class="auth-hint">Usuario y contraseña: el nombre del archivo de la lámina, sin <code>.png</code>.</div>
       <div class="auth-error" id="login-error"></div>
     </form>
   </div>
@@ -1023,7 +1011,6 @@
 
     <div class="session-wrap">
       <span class="session-prefix">SOY:</span>
-      <div class="conn-pill" id="db-status">Cargando...</div>
       <button type="button" class="user-chip session-pill" id="current-user-label">Inicia</button>
       <button type="button" class="btn btn-secondary btn-logout hidden" id="logout-btn">Salir</button>
       <button type="button" class="btn btn-secondary btn-codes hidden" id="codes-btn">Ver códigos</button>
@@ -1236,6 +1223,6 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="app.js?v=20260526-1"></script>
+<script src="app.js?v=20260604-1"></script>
 </body>
 </html>

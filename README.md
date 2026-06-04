@@ -4,6 +4,7 @@
 
 - Esquema SQL: `db/schema.sql`
 - Seed inicial: `db/seed.sql`
+- Generador del seed desde `laminas/*.png`: `db/generate-seed.mjs`
 
 ## Frontend
 
@@ -16,6 +17,10 @@
 2. Ejecutar `db/schema.sql`.
 3. Ejecutar `db/seed.sql`.
 4. Configurar la URL y la `anon key` de Supabase en [app.js](/Users/martin_sztajn/Desktop/albumcolegium.github.io/app.js).
+
+Los usuarios quedan autenticados con `login_name` y `login_password`. En el seed generado desde `laminas/*.png`, ambos salen del nombre del archivo sin `.png`, y `lamina_path` apunta a la imagen real.
+
+Cuando se activa una figurita, la función `activar_figurita_con_codigo` copia esa ruta a `figuritas.foto_path` si todavía estaba vacía. La tarjeta solo muestra la imagen cuando la figurita tiene cantidad activa; si no, conserva las iniciales.
 
 Si necesitás ver los códigos secretos generados por la DB, corré en el SQL Editor:
 
